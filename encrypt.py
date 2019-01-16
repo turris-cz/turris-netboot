@@ -1,8 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-from Crypto.Cipher import AES
-from Crypto.Util import Counter
-from Crypto import Random
+import os
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives import padding
+from cryptography.hazmat.backends import default_backend
 import sys
 
 key_bytes = 16
@@ -12,20 +13,24 @@ pad = '\0'
 def encrypt(plaintext, key):
     assert len(key) == key_bytes
 
-    # Choose a random, 16-byte IV.
-    iv = Random.new().read(AES.block_size)
+    # Init
+    backend = default_backend()
 
-    # Create AES-CBC cipher.
-    aes = AES.new(key, AES.MODE_CBC, iv)
+    # Choose a random, 16-byte IV.
+    iv = os.urandom(block_size)
+
+    # Create AES-CBC cipher encryptor
+    cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=backend)
+    encryptor = cipher.encryptor()
 
     # Padding
-    to_pad_len = len(plaintext) % block_size
-    if to_pad_len > 0:
-       pad_string = pad * (16 - to_pad_len)
-       plaintext = plaintext + pad_string
+    padder = padding.PKCS7(128).padder()
+    padded_data = padder.update(plaintext) + padder.finalize();
 
-    # Encrypt and return IV and ciphertext.
-    ciphertext = aes.encrypt(plaintext)
+    # Encrypt
+    ciphertext = encryptor.update(padded_data) + encryptor.finalize()
+
+    # Return IV and ciphertext.
     return iv + ciphertext
 
 assert len(sys.argv) == 4
@@ -40,6 +45,6 @@ f.close()
 
 en_data = encrypt(data,key)
 
-f = open(sys.argv[3], 'w')
+f = open(sys.argv[3], 'wb')
 f.write(en_data)
 f.close()
