@@ -53,7 +53,7 @@ bootargs=console=ttyMV0,115200 earlycon=ar3700_uart,0xd0012000
 mox_net_get=dhcp \${pxefile_addr_r} /turris-netboot/mox_${SERIAL}; kernel_size=\$filesize;
 mox_net_decrypt=aes dec 0x$(printf %x $KEY_ADDR) 0x$(printf %x $PXE_ADDR) 0x$(printf %x $(expr $PXE_ADDR + 16)) 0x8000000 \$kernel_size
 mox_net_get_key=$(add=0; for i in $(my_netboot get_aes 2> /dev/null); do
-    echo mw.q 0x$(printf %x $(expr $KEY_ADDR + $add '*' 4)) $i\; ;
+    echo -n mw.q 0x$(printf %x $(expr $KEY_ADDR + $add '*' 4)) $i\; ;
     add=$(expr "$add" + 1);
 done)
 mox_net_run=bootm 0x8000000
