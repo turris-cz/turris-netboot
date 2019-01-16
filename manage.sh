@@ -22,12 +22,17 @@ get_rootfs() {
     mkdir -p "$HOME"/rootfs/
     cd "$HOME"/rootfs/
     if [ \! -f ./rootfs.tar.gz ]; then
-        wget -O "$HOME"/rootfs/rootfs.tar.gz https://repo.turris.cz/hbs/medkit/mox-medkit-latest.tar.gz
-        wget -O "$HOME"/rootfs/rootfs.tar.gz.sha256 https://repo.turris.cz/hbs/medkit/mox-medkit-latest.tar.gz.sha256
+        wget -O "$HOME"/rootfs/rootfs.tar.gz https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz
+        wget -O "$HOME"/rootfs/rootfs.tar.gz.sha256 https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz.sha256
+        wget -O "$HOME"/rootfs/rootfs.tar.gz.sig https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz.sig
         sed -i 's|mox-medkit-*|rootfs.tar.gz|' "$HOME"/rootfs/rootfs.tar.gz.sha256
         sha256sum -c ./rootfs.tar.gz.sha256 || {
             rm -f ./rootfs.tar.gz*
             die "Download failed"
+        }
+        usign -V -m ./rootfs.tar.gz -P /etc/opkg/keys/ || {
+            rm -f ./rootfs.tar.gz*
+            die "Tampered tarball"
         }
     fi
     if [ ./rootfs.tar.gz -nt /srv/tftp/turris-netboot/mox ] || [ \! -f /srv/tftp/turris-netboot/mox ]; then
