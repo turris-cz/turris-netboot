@@ -30,10 +30,10 @@ get_rootfs() {
             die "Download failed"
         }
     fi
-    if false; then
+    if [ ./rootfs.tar.gz -nt /srv/tftp/turris-netboot/mox ] || [ \! -f /srv/tftp/turris-netboot/mox ]; then
         cd "$HOME"/rootfs/
         rm -rf ./boot ./usr mox.its
-        tar -xzf rootfs.tar.gz ./boot/Image ./boot/armada-3720-turris-mox.dtb ./usr/share/turris-netboot/initrd ./usr/share/turris-netboot/mox.itx || die "Wrong rootfs"
+        tar -xzf rootfs.tar.gz ./boot/Image ./boot/armada-3720-turris-mox.dtb ./usr/share/turris-netboot/initrd-aarch64 ./usr/share/turris-netboot/mox.itx || die "Wrong rootfs"
         rm -f mox.its
         cp ./usr/share/turris-netboot/mox.its .
         /usr/sbin/mkimage -f mox.its /srv/tftp/turris-netboot/mox || die "Can't create image"
@@ -69,7 +69,10 @@ EOF
     cd "$BASE_DIR"/accepted
     for i in */aes; do
         [ -f "$i" ] || continue
-        netboot-encrypt /srv/tftp/turris-netboot/mox "$i" /srv/tftp/turris-netboot/mox_$(dirname "$i")
+        if [ /srv/tftp/turris-netboot/mox_$(dirname "$i") -ot /srv/tftp/turris-netboot/mox ] || \
+           [ \! -f /srv/tftp/turris-netboot/mox_$(dirname "$i") ]; then
+            netboot-encrypt /srv/tftp/turris-netboot/mox "$i" /srv/tftp/turris-netboot/mox_$(dirname "$i")
+        fi
     done
 }
 
