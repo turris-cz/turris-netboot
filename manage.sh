@@ -25,7 +25,7 @@ get_rootfs() {
         wget -O "$HOME"/rootfs/rootfs.tar.gz https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz
         wget -O "$HOME"/rootfs/rootfs.tar.gz.sha256 https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz.sha256
         wget -O "$HOME"/rootfs/rootfs.tar.gz.sig https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz.sig
-        sed -i 's|mox-medkit-*|rootfs.tar.gz|' "$HOME"/rootfs/rootfs.tar.gz.sha256
+        sed -i 's|mox-netboot-.*|rootfs.tar.gz|' "$HOME"/rootfs/rootfs.tar.gz.sha256
         sha256sum -c ./rootfs.tar.gz.sha256 || {
             rm -f ./rootfs.tar.gz*
             die "Download failed"
@@ -38,7 +38,7 @@ get_rootfs() {
     if [ ./rootfs.tar.gz -nt /srv/tftp/turris-netboot/mox ] || [ \! -f /srv/tftp/turris-netboot/mox ]; then
         cd "$HOME"/rootfs/
         rm -rf ./boot ./usr mox.its
-        tar -xzf rootfs.tar.gz ./boot/Image ./boot/armada-3720-turris-mox.dtb ./usr/share/turris-netboot/initrd-aarch64 ./usr/share/turris-netboot/mox.itx || die "Wrong rootfs"
+        tar -xzf rootfs.tar.gz ./boot/Image ./boot/armada-3720-turris-mox.dtb ./usr/share/turris-netboot/initrd-aarch64 ./usr/share/turris-netboot/mox.its || die "Wrong rootfs"
         rm -f mox.its
         cp ./usr/share/turris-netboot/mox.its .
         /usr/sbin/mkimage -f mox.its /srv/tftp/turris-netboot/mox || die "Can't create image"
