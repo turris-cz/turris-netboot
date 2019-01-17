@@ -1,5 +1,5 @@
 #!/bin/sh
-uci set network.lan.ifname="$(cd /sys/class/net/; ls -1 eth* lan* | tr '\n' ' ')"
+uci set network.lan.ifname="$(cd /sys/class/net/; ls -d1 eth* lan* | tr '\n' ' ')"
 uci set network.lan.proto='dhcp'
 uci set network.lan.force_link='1'
 uci set network.lan.type='bridge'
