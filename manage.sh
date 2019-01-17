@@ -70,6 +70,7 @@ EOF
         cat "$i"
     done
     } > ~/.ssh/authorized_keys
+    chmod 0644 ~/.ssh/authorized_keys
     get_rootfs
     cd "$BASE_DIR"/accepted
     for i in */aes; do
