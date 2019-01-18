@@ -16,7 +16,7 @@ get_root() {
 }
 
 get_root_version() {
-    find "$BASE_DIR"/rootfs/overlay/$ID "$BASE_DIR"/rootfs/overlay/common -type f -exec sha256sum \{\} \; 2> /dev/null \
+    find /etc/config/wireless /etc/config/netboot "$BASE_DIR"/rootfs/overlay/$ID "$BASE_DIR"/rootfs/overlay/common -type f -exec sha256sum \{\} \; 2> /dev/null \
     | sort | \
     cat - "$BASE_DIR"/rootfs/rootfs.tar.gz.sha256 | sha256sum
 }

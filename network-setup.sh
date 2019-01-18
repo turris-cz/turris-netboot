@@ -8,7 +8,7 @@ uci delete network.lan.ipaddr
 uci delete network.lan.netmask
 uci delete network.lan.ip6assign
 wifi detect
-for i in $(uci show wireless | sed -n 's|.*\.\(@wifi-iface[^.]*\)=.*|\1|p'); do
+for i in $(cat /etc/config/wireless | sed -n 's|config.*wifi-iface.*'"'\\([^']*\\)'"'|\1|p'); do
     uci set wireless.$i.ssid="@@SSID@@"
     uci set wireless.$i.encryption='psk2+ccmp'
     uci set wireless.$i.key="@@KEY@@"
