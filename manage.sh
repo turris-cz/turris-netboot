@@ -1,7 +1,7 @@
 #!/bin/sh
 BASE_DIR="$HOME/clients"
 
-[ "$(id -un)" = turris-netboot ] || exec su - turris-netboot "$0" "$@"
+[ "$(id -un)" = turris-netboot ] || exec su turris-netboot "$0" "$@"
 
 die() {
     echo "$@" >&2
@@ -16,16 +16,17 @@ list() {
         echo " * $ID"
     done
     cd "$BASE_DIR"
+    echo
 }
 
 get_rootfs() {
     mkdir -p "$HOME"/rootfs/
     cd "$HOME"/rootfs/
-    if [ \! -f ./rootfs.tar.gz ]; then
-        wget -O "$HOME"/rootfs/rootfs.tar.gz https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz
-        wget -O "$HOME"/rootfs/rootfs.tar.gz.sha256 https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz.sha256
-        wget -O "$HOME"/rootfs/rootfs.tar.gz.sig https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz.sig
-        sed -i 's|mox-netboot-.*|rootfs.tar.gz|' "$HOME"/rootfs/rootfs.tar.gz.sha256
+    if [ \! -f ./rootfs.tar.gz ] || [ "x$1" = "x-f" ]; then
+        wget -O "$HOME"/rootfs/rootfs-new.tar.gz https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz
+        wget -O "$HOME"/rootfs/rootfs-new.tar.gz.sha256 https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz.sha256
+        wget -O "$HOME"/rootfs/rootfs-new.tar.gz.sig https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz.sig
+        sed -i 's|mox-netboot-.*|rootfs-new.tar.gz|' "$HOME"/rootfs/rootfs.tar.gz.sha256
         sha256sum -c ./rootfs.tar.gz.sha256 || {
             rm -f ./rootfs.tar.gz*
             die "Download failed"
@@ -34,6 +35,10 @@ get_rootfs() {
             rm -f ./rootfs.tar.gz*
             die "Tampered tarball"
         }
+        sed -i 's|rootfs-new.tar.gz|rootfs.tar.gz|' "$HOME"/rootfs/rootfs-new.tar.gz.sha256
+        mv "$HOME"/rootfs/rootfs-new.tar.gz "$HOME"/rootfs/rootfs.tar.gz
+        mv "$HOME"/rootfs/rootfs-new.tar.gz.sha256 "$HOME"/rootfs/rootfs.tar.gz.sha256
+        mv "$HOME"/rootfs/rootfs-new.tar.gz.sig "$HOME"/rootfs/rootfs.tar.gz.sig
     fi
     if [ ./rootfs.tar.gz -nt /srv/tftp/turris-netboot/mox ] || [ \! -f /srv/tftp/turris-netboot/mox ]; then
         cd "$HOME"/rootfs/
@@ -44,6 +49,15 @@ get_rootfs() {
         /usr/sbin/mkimage -f mox.its /srv/tftp/turris-netboot/mox || die "Can't create image"
         rm -rf ./boot ./usr mox.its
     fi
+}
+
+update_rootfs() {
+    wget -O "$HOME"/rootfs/rootfs-check.tar.gz.sha256 https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz.sha256
+    sed -i 's|mox-netboot-.*|rootfs.tar.gz|' "$HOME"/rootfs/rootfs-check.tar.gz.sha256
+    sha256sum -c ./rootfs-check.tar.gz.sha256 || {
+        get_rootfs -f
+    }
+    rm -f "$HOME"/rootfs/rootfs-check.tar.gz.sha256
 }
 
 regen() {
@@ -136,7 +150,8 @@ Available commands:
     accept [serial]   Accept routers request for registration
     revoke [serial]   Revoke routers access
     regen             Regenerate configuration
-    get_rootfs        Update rootfs that is being served
+    get_rootfs        Download rootfs that is being served
+    update_rootfs     Check whether there is a newer rootfs to serve
 
 EOF
 esac
