@@ -22,11 +22,15 @@ get_root_version() {
 }
 
 setup() {
-    SSID="$(uci -q get netboot.wifi.ssid)"
-    [ -n "$SSID" ] || SSID="$(uci -q get wireless.@wifi-iface[0].ssid)"
-    KEY="$(uci -q get netboot.wifi.key)"
-    [ -n "$KEY" ] || KEY="$(uci -q get wireless.@wifi-iface[0].key)"
+    SSID="$(uci -q get wireless.@wifi-iface[0].ssid)"
+    KEY="$(uci -q get wireless.@wifi-iface[0].key)"
     {
+        echo '#!/bin/sh'
+        echo 'cat > /etc/config/netboot << EOF'
+        cat /etc/config/netboot
+        echo EOF
+        echo
+
         if [ -f "$BASE_DIR"/rootfs/setup.sh ]; then
             cat "$BASE_DIR"/rootfs/setup.sh
         else

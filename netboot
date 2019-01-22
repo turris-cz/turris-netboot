@@ -1,0 +1,22 @@
+# Defaults to be overriden later
+config wifi default
+	option ssid 'Turris'
+	option key ''
+
+# WiFi specific settings
+# 02df_9141 is MOX SDIO WiFi
+# 168c_003c is WLE900VX - 5GHz AC PCIe WiFi card in MOX and Omnia
+
+config device 168c_003c
+	option channel '36'
+
+config device 02df_9141
+	option channel '11'
+
+# AP-WiFi relations
+config device 0000000000000007
+	option network 'default'
+
+# AP-WiFi specific overrides - format serial_WiFi
+config device 0000000000000007_168c_003c
+	option channel '40'
