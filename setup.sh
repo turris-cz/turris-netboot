@@ -13,4 +13,4 @@ touch /srv/tftp/pxelinux.cfg/default-arm-mvebu-turris_mox
 chown turris-netboot /srv/tftp/pxelinux.cfg/default-arm-mvebu-turris_mox
 mkdir -p /srv/tftp/turris-netboot
 chown turris-netboot /srv/tftp/turris-netboot
-su - turris-netboot netboot-manager regen
+netboot-manager regen
