@@ -23,16 +23,17 @@ get_rootfs() {
     mkdir -p "$HOME"/rootfs/
     cd "$HOME"/rootfs/
     if [ \! -f ./rootfs.tar.gz ] || [ "x$1" = "x-f" ]; then
-        wget -O "$HOME"/rootfs/rootfs-new.tar.gz https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz
-        wget -O "$HOME"/rootfs/rootfs-new.tar.gz.sha256 https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz.sha256
-        wget -O "$HOME"/rootfs/rootfs-new.tar.gz.sig https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz.sig
-        sed -i 's|mox-netboot-.*|rootfs-new.tar.gz|' "$HOME"/rootfs/rootfs.tar.gz.sha256
-        sha256sum -c ./rootfs.tar.gz.sha256 || {
-            rm -f ./rootfs.tar.gz*
+        rm -f rootfs-new.tar.gz*
+        wget -O "$HOME"/rootfs/rootfs-new.tar.gz https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz || die "Can't download tarball"
+        wget -O "$HOME"/rootfs/rootfs-new.tar.gz.sha256 https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz.sha256 || "Can't download checksum"
+        wget -O "$HOME"/rootfs/rootfs-new.tar.gz.sig https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz.sig || Can't download signature"
+        sed -i 's|mox-netboot-.*|rootfs-new.tar.gz|' "$HOME"/rootfs/rootfs-new.tar.gz.sha256
+        sha256sum -c ./rootfs-new.tar.gz.sha256 || {
+            rm -f ./rootfs-new.tar.gz*
             die "Download failed"
         }
-        usign -V -m ./rootfs.tar.gz -P /etc/opkg/keys/ || {
-            rm -f ./rootfs.tar.gz*
+        usign -V -m ./rootfs-new.tar.gz -P /etc/opkg/keys/ || {
+            rm -f ./rootfs-new.tar.gz*
             die "Tampered tarball"
         }
         sed -i 's|rootfs-new.tar.gz|rootfs.tar.gz|' "$HOME"/rootfs/rootfs-new.tar.gz.sha256
