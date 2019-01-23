@@ -1,7 +1,9 @@
 #!/bin/sh
 BASE_DIR="$HOME/clients"
 
-[ "$(id -un)" = turris-netboot ] || exec su turris-netboot "$0" "$@"
+[ "$(id -un)" = turris-netboot ] || exec su turris-netboot -- "$0" "$@"
+
+JSON=""
 
 die() {
     echo "$@" >&2
@@ -10,13 +12,28 @@ die() {
 
 list() {
     cd "$1"
+    if [ -n "$JSON" ]; then
+        echo "\"$1\": ["
+    else
+        echo "$1:" | sed -e 's|^a|A|' -e 's|^i|I|'
+    fi
+    DELIM=""
     for i in */ssh_key; do
         [ -f "$i" ] || continue
         ID="$(dirname "$i")"
-        echo " * $ID"
+        if [ -n "$JSON" ]; then
+            echo "$DELIM \"$ID\""
+            DELIM=","
+        else
+            echo " * $ID"
+        fi
     done
+    if [ -n "$JSON" ]; then
+        echo "]"
+    else
+        echo
+    fi
     cd "$BASE_DIR"
-    echo
 }
 
 get_rootfs() {
@@ -25,8 +42,8 @@ get_rootfs() {
     if [ \! -f ./rootfs.tar.gz ] || [ "x$1" = "x-f" ]; then
         rm -f rootfs-new.tar.gz*
         wget -O "$HOME"/rootfs/rootfs-new.tar.gz https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz || die "Can't download tarball"
-        wget -O "$HOME"/rootfs/rootfs-new.tar.gz.sha256 https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz.sha256 || "Can't download checksum"
-        wget -O "$HOME"/rootfs/rootfs-new.tar.gz.sig https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz.sig || Can't download signature"
+        wget -O "$HOME"/rootfs/rootfs-new.tar.gz.sha256 https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz.sha256 || die "Can't download checksum"
+        wget -O "$HOME"/rootfs/rootfs-new.tar.gz.sig https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz.sig || die "Can't download signature"
         sed -i 's|mox-netboot-.*|rootfs-new.tar.gz|' "$HOME"/rootfs/rootfs-new.tar.gz.sha256
         sha256sum -c ./rootfs-new.tar.gz.sha256 || {
             rm -f ./rootfs-new.tar.gz*
@@ -53,12 +70,13 @@ get_rootfs() {
 }
 
 update_rootfs() {
-    wget -O "$HOME"/rootfs/rootfs-check.tar.gz.sha256 https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz.sha256
-    sed -i 's|mox-netboot-.*|rootfs.tar.gz|' "$HOME"/rootfs/rootfs-check.tar.gz.sha256
-    sha256sum -c ./rootfs-check.tar.gz.sha256 || {
+    wget -O /tmp/rootfs-check.tar.gz.sha256 https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz.sha256
+    sed -i 's|mox-netboot-.*|rootfs.tar.gz|' /tmp/rootfs-check.tar.gz.sha256
+    cd "$HOME"/rootfs/
+    sha256sum -c /tmp/rootfs-check.tar.gz.sha256 || {
         get_rootfs -f
     }
-    rm -f "$HOME"/rootfs/rootfs-check.tar.gz.sha256
+    rm -f /tmp/rootfs-check.tar.gz.sha256
 }
 
 regen() {
@@ -126,21 +144,34 @@ mkdir -p "$BASE_DIR"
 mkdir -p "$BASE_DIR"/accepted
 mkdir -p "$BASE_DIR"/incoming
 cd "$BASE_DIR"
+if [ "x$1" = "x-j" ]; then
+    JSON=1
+    shift
+fi
 case $1 in
-    list-incoming) list "incoming" ;;
-    list-accepted) list "accepted" ;;
-    list-all)
-        echo "Accepted:"
-        list "accepted"
-        echo
-        echo Incoming:
+    list-incoming) 
+        [ -z "$JSON" ] || echo "{"
         list "incoming"
+        [ -z "$JSON" ] || echo "}"
+        ;;
+    list-accepted) 
+        [ -z "$JSON" ] || echo "{"
+        list "accepted"
+        [ -z "$JSON" ] || echo "}"
+        ;;
+    list-all)
+        [ -z "$JSON" ] || echo "{"
+        list "accepted"
+        [ -z "$JSON" ] || echo ","
+        list "incoming"
+        [ -z "$JSON" ] || echo "}"
         ;;
     accept) accept "$2" ;;
     revoke) revoke "$2" ;;
     register) register ;;
     regen) regen ;;
     get_rootfs) get_rootfs ;;
+    update_rootfs) update_rootfs ;;
     *) cat << EOF
 Available commands:
 
@@ -154,5 +185,6 @@ Available commands:
     get_rootfs        Download rootfs that is being served
     update_rootfs     Check whether there is a newer rootfs to serve
 
+Use -j as a first argument to get lists in json format
 EOF
 esac
