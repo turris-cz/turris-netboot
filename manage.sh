@@ -144,9 +144,8 @@ mkdir -p "$BASE_DIR"
 mkdir -p "$BASE_DIR"/accepted
 mkdir -p "$BASE_DIR"/incoming
 cd "$BASE_DIR"
-if [ "x$1" = "x-j" ]; then
+if [ "x$2" = "x-j" ]; then
     JSON=1
-    shift
 fi
 case $1 in
     list-incoming) 
@@ -171,19 +170,26 @@ case $1 in
     register) register ;;
     regen) regen ;;
     get_rootfs) get_rootfs ;;
-    update_rootfs) update_rootfs ;;
+    update_rootfs)
+        if [ "x$2" = "x-s" ]; then
+            # Sleep up to 2 hours
+            sleep "$(expr $(printf '%d' 0x$(head -c 2 /dev/urandom | hexdump -e '"%02x"')) % 7200)"
+        fi
+        update_rootfs
+        ;;
     *) cat << EOF
 Available commands:
 
-    list-incoming     List routers waiting to be registered
-    list-accepted     List registered routers
-    list-all          List both types of routers
+    list-incoming       List routers waiting to be registered
+    list-accepted       List registered routers
+    list-all            List both types of routers
 
-    accept [serial]   Accept routers request for registration
-    revoke [serial]   Revoke routers access
-    regen             Regenerate configuration
-    get_rootfs        Download rootfs that is being served
-    update_rootfs     Check whether there is a newer rootfs to serve
+    accept <serial>     Accept routers request for registration
+    revoke <serial>     Revoke routers access
+    regen               Regenerate configuration
+    get_rootfs          Download rootfs that is being served
+    update_rootfs [-s]  Check whether there is a newer rootfs to serve
+                        Use -s to add random delay up to two hours
 
 Use -j as a first argument to get lists in json format
 EOF
