@@ -8,10 +8,10 @@ config wifi default
 # 168c_003c is WLE900VX - 5GHz AC PCIe WiFi card in MOX and Omnia
 
 config device 168c_003c
-	option channel '36'
+	option channel 'auto5'
 
 config device 02df_9141
-	option channel '11'
+	option channel 'auto24'
 
 # AP-WiFi relations
 config device 0000000000000007
@@ -20,3 +20,6 @@ config device 0000000000000007
 # AP-WiFi specific overrides - format serial_WiFi
 config device 0000000000000007_168c_003c
 	option channel '40'
+	option ssid '@@SSID@@-5'
+	option key '@@KEY@@-5'
+	option htmode 'VHT40'

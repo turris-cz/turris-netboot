@@ -21,6 +21,12 @@ get_option() {
     [ -z "$RES" ] || echo "$RES"
 }
 
+random() {
+    MOD="$1"
+    [ -n "$MOD"] || MOD=65536
+    echo $(expr $(printf '%d' 0x$(head -c 2 /dev/urandom | hexdump -e '"%02x"')) % $MOD)
+}
+
 for wifi in $(cd /sys/class/ieee80211; ls -1d phy*); do
     [ -d "/sys/class/ieee80211/$wifi" ] || continue
     VENDOR="$(cat /sys/class/ieee80211/$wifi/device/vendor | sed 's|^0x||')"
@@ -31,7 +37,19 @@ for wifi in $(cd /sys/class/ieee80211; ls -1d phy*); do
     DEF="$(get_option network default)"
     SSID="$(get_option ssid @@SSID@@)"
     KEY="$(get_option key @@KEY@@)"
-    CHANNEL="$(get_option channel 6)"
+    CHANNEL="$(get_option channel auto24)"
+    HTMODE="$(get_option htmode)"
+    if [ "$CHANNEL" = auto24 ]; then
+        CHANNEL="$(random 12)"
+    fi
+    if [ "$CHANNEL" = auto5 ]; then
+        CHANNEL="$(random 18)"
+        if [ "$CHANNEL" -gt 7 ]; then
+            CHANNEL="$(expr 72 + "$CHANNEL" \* 4)"
+        else
+            CHANNEL="$(expr 36 + "$CHANNEL" \* 4)"
+        fi
+    fi
 
     if [ "$CHANNEL" -gt 13 ]; then
         HWMODE="11a"
