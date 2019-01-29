@@ -23,7 +23,7 @@ get_option() {
 
 random() {
     MOD="$1"
-    [ -n "$MOD"] || MOD=65536
+    [ -n "$MOD" ] || MOD=65536
     echo $(expr $(printf '%d' 0x$(head -c 2 /dev/urandom | hexdump -e '"%02x"')) % $MOD)
 }
 
