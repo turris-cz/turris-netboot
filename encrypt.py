@@ -8,7 +8,8 @@ import sys
 
 key_bytes = 16
 block_size = 16
-pad = '\0'
+pad = "\0"
+
 
 def encrypt(plaintext, key):
     assert len(key) == key_bytes
@@ -25,7 +26,7 @@ def encrypt(plaintext, key):
 
     # Padding
     padder = padding.PKCS7(128).padder()
-    padded_data = padder.update(plaintext) + padder.finalize();
+    padded_data = padder.update(plaintext) + padder.finalize()
 
     # Encrypt
     ciphertext = encryptor.update(padded_data) + encryptor.finalize()
@@ -35,16 +36,16 @@ def encrypt(plaintext, key):
 
 assert len(sys.argv) == 4
 
-f = open(sys.argv[1], 'rb')
+f = open(sys.argv[1], "rb")
 data = f.read()
 f.close()
 
-f = open(sys.argv[2], 'rb')
+f = open(sys.argv[2], "rb")
 key = f.read()
 f.close()
 
-en_data = encrypt(data,key)
+en_data = encrypt(data, key)
 
-f = open(sys.argv[3], 'wb')
+f = open(sys.argv[3], "wb")
 f.write(en_data)
 f.close()
