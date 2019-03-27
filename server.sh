@@ -41,12 +41,17 @@ setup() {
     } | sed -e 's|@@SSID@@|'"$SSID|" -e 's|@@KEY@@|'"$KEY|"
 }
 
+set_static_lease() {
+    netboot-set-static-lease $(echo "$SSH_CONNECTION" | cut -d " " -f 3) ${ID}
+}
+
 comm=""
 read comm
 case "$comm" in
     get_root) get_root ;;
     get_root_overlay) get_root ;;
     get_root_version) get_root_version ;;
+    set_static_lease) set_static_lease ;;
     status)   echo "registered" ;;
     get_id)   echo "$ID" ;;
     get_version)   echo "$ID" ;;

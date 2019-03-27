@@ -99,6 +99,11 @@ mkdir /chroot
 my_netboot get_root | tar -C /chroot -xzvf - || die "Can't get rootfs"
 my_netboot get_root_overlay 2> /dev/null | tar -C /chroot -xvf - 2> /dev/null || :
 my_netboot get_root_version > /chroot/root-version
+if my_netboot set_static_lease ; then
+    /etc/init.d/network restart  # get new IP
+else
+    echo "Failed to set static lease on the server"
+fi
 TIMEOUT="$(my_netboot get_timeout 2> /dev/null)"
 [ -n "$TIMEOUT" ] || TIMEOUT=60
 ( sleep 120; while sleep $TIMEOUT; do [ "$(my_netboot get_root_version)" = "$(cat /chroot/root-version)" ] || reboot -f; done ) &
