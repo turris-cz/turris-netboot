@@ -18,14 +18,21 @@ list() {
         echo "$1:" | sed -e 's|^a|A|' -e 's|^i|I|'
     fi
     DELIM=""
-    for i in */ssh_key; do
-        [ -f "$i" ] || continue
-        ID="$(dirname "$i")"
+    for id in *; do
+        [ -f "${id}/ssh_key" ] || continue
         if [ -n "$JSON" ]; then
-            echo "$DELIM \"$ID\""
+            if [ -f "$i/remote/01.crt" ]; then  # first client cert
+                echo "$DELIM \{\"id\": \"${ID}\", \"ready\": true\}"
+            else
+                echo "$DELIM \{\"id\": \"${ID}\", \"ready\": false\}"
+            fi
             DELIM=","
         else
-            echo " * $ID"
+            if [ -f "$i/remote/01.crt" ]; then
+                echo " * ${ID} (ready)"
+            else
+                echo " * ${ID} (not ready)"
+            fi
         fi
     done
     if [ -n "$JSON" ]; then
@@ -120,6 +127,7 @@ accept() {
     rm -rf "accepted/$1"
     mv "incoming/$1" "accepted/$1"
     head -c 16 /dev/urandom > accepted/$1/aes
+    make_remote_certs "accepted/$1" "$1"
     regen
 }
 
@@ -136,6 +144,10 @@ register() {
         mkdir -p incoming/$SERIAL
         echo "$KEY" > incoming/$SERIAL/ssh_key
     fi
+}
+
+make_remote_certs() {
+    CA_DIR="$1" /usr/bin/turris-cagen new_ca remote gen_ca gen_server turris gen_client "$2"
 }
 
 MYSELF="$(readlink -f "$0")"

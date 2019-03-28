@@ -30,6 +30,12 @@ setup() {
         cat /etc/config/netboot
         echo EOF
         echo
+        # Configuring fosquitto
+        echo '#!/bin/sh'
+        echo 'cat > /etc/config/netboot << EOF'
+        cat /etc/config/fosquitto | # sed -e  substitute ID
+        echo EOF
+        echo
 
         if [ -f "$BASE_DIR"/rootfs/setup.sh ]; then
             cat "$BASE_DIR"/rootfs/setup.sh
@@ -42,7 +48,11 @@ setup() {
 }
 
 set_static_lease() {
-    netboot-set-static-lease $(echo "$SSH_CONNECTION" | cut -d " " -f 3) ${ID}
+    netboot-set-static-lease "$(echo "$SSH_CONNECTION" | cut -d " " -f 3)" "${ID}"
+}
+
+get_remote_certs() {
+    tar -cf - --owner=root -C "${BASE_DIR}/clients/accepted/${ID}/remote"
 }
 
 comm=""
@@ -53,6 +63,7 @@ case "$comm" in
     get_root_version) get_root_version ;;
     set_static_lease) set_static_lease ;;
     status)   echo "registered" ;;
+    get_remote_certs) get_remote_certs ;;
     get_id)   echo "$ID" ;;
     get_version)   echo "$ID" ;;
     get_aes)  cat "$BASE_DIR"/clients/accepted/$ID/aes | hexdump -e '4/4 "%02x "' ;;

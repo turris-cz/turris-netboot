@@ -108,6 +108,8 @@ TIMEOUT="$(my_netboot get_timeout 2> /dev/null)"
 [ -n "$TIMEOUT" ] || TIMEOUT=60
 ( sleep 120; while sleep $TIMEOUT; do [ "$(my_netboot get_root_version)" = "$(cat /chroot/root-version)" ] || reboot -f; done ) &
 my_netboot setup > /chroot/etc/rc.local
+my_netboot get_remote_certs 2> /dev/null | tar -C /chroot/etc/ssl/ca  -xvf - 2> /dev/null || :
+# TODO configure fosquitto
 for i in sys proc dev dev/pts; do
     mount -o bind /$i /chroot/$i
 done

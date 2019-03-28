@@ -1,0 +1,10 @@
+config global global
+	option debug '0'
+
+config local local
+	option port 11883
+
+config remote remote
+	option enabled '1'
+    option port 11884
+# TODO 
