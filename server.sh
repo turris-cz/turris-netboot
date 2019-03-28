@@ -30,12 +30,12 @@ setup() {
         cat /etc/config/netboot
         echo EOF
         echo
-        # Configuring fosquitto
-        echo '#!/bin/sh'
-        echo 'cat > /etc/config/netboot << EOF'
-        cat /etc/config/fosquitto | # sed -e  substitute ID
-        echo EOF
+
+        # Enable remote fosquitto
+        echo 'foris-client-wrapper -m remote -a update_settings -I {"enabled":true,"wan_access":true,"port":11884}'
         echo
+
+        # TODO or prepare client token and push it to server
 
         if [ -f "$BASE_DIR"/rootfs/setup.sh ]; then
             cat "$BASE_DIR"/rootfs/setup.sh
@@ -53,6 +53,7 @@ set_static_lease() {
 
 get_remote_certs() {
     tar -cf - --owner=root -C "${BASE_DIR}/clients/accepted/${ID}/remote"
+    # TODO manully insert token into system
 }
 
 comm=""
