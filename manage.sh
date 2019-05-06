@@ -120,6 +120,8 @@ accept() {
     rm -rf "accepted/$1"
     mv "incoming/$1" "accepted/$1"
     head -c 16 /dev/urandom > accepted/$1/aes
+    # store static lease
+    netboot-set-static-lease ${1} $(cat accepted/$1/mac)
     regen
 }
 
@@ -132,9 +134,11 @@ revoke() {
 register() {
     KEY="$(head -c 256 | grep '^ssh-ed25519 [a-zA-Z0-9/+=]\+ [0-9A-F]\+$')"
     if [ "$KEY" ]; then
-        SERIAL="$(echo "$KEY" | sed 's|.*\ \([0-9A-Z]\+\)$|\1|')"
+        SERIAL="$(echo "$KEY" | sed 's|.*\ \([0-9A-Z]\+\)@[0-9a-z:]\+$|\1|')"
+        MAC="$(echo "$KEY" | sed 's|.*\ [0-9A-Z]\+@\([0-9a-z:]\+\)$|\1|')"
         mkdir -p incoming/$SERIAL
         echo "$KEY" > incoming/$SERIAL/ssh_key
+        echo "$MAC" > incoming/$SERIAL/mac
     fi
 }
 

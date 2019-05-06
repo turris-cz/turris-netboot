@@ -26,7 +26,7 @@ my_netboot() {
 pair() {
     rm -f /root/.ssh/my_ssh_key*
     get_reg_keys
-    ssh-keygen -t ed25519 -f /root/.ssh/my_ssh_key -N "" -C "$SERIAL"
+    ssh-keygen -t ed25519 -f /root/.ssh/my_ssh_key -N "" -C "${SERIAL}@${MAC}"
     cat /root/.ssh/my_ssh_key.pub \
         | ssh -i /root/.ssh/reg_key $SSH_OPTS turris-netboot@"$SERVER_IP" \
         || die "Can't connect to server to register"
@@ -39,6 +39,9 @@ pair() {
         sleep 5
         echo -n .
     done
+    echo
+    echo "Restarting network to get a new static IP address."
+    /etc/init.d/network restart
     echo
     echo "We are registered now!"
     ORIG="$(fw_printenv)"
@@ -74,6 +77,7 @@ mount -t devpts devpts /dev/pts
 mkdir -p /etc
 echo '/dev/mtd2 0 0x00010000' > /etc/fw_env.config
 SERIAL="$(cat /sys/bus/platform/devices/soc:internal-regs@d0000000:crypto@0/mox_serial_number)"
+MAC="$(cat /sys/class/net/eth0/address)"
 
 mkdir -p /root/.ssh
 cat > /root/.ssh/my_ssh_key << EOF
