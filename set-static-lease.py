@@ -79,6 +79,7 @@ if not free_ip:
 
     if not free_ip:
         err(f"Can't find a free ip to assing.")
+        sys.exit(1)
 
 # set new record
 with EUci() as uci:
@@ -92,3 +93,5 @@ sub = subprocess.Popen(["/etc/init.d/dnsmasq", "restart"])
 rc = sub.wait()
 if rc != 0:
     err(f"New static IP was assigned {free_ip}, but failed to restart dnsmasq")
+
+print(free_ip)

@@ -1,9 +1,12 @@
 #!/bin/sh
+. /usr/share/libubox/jshn.sh
+
 BASE_DIR="$HOME/clients"
 
 [ "$(id -un)" = turris-netboot ] || exec su turris-netboot -- "$0" "$@"
 
 JSON=""
+THIS_ID=$(/usr/bin/crypto-wrapper serial-number 2> /dev/null || echo "netboot_master")
 
 die() {
     echo "$@" >&2
@@ -115,13 +118,60 @@ EOF
     done
 }
 
+generate_remote_access_certs() {
+    CA_DIR="$1" /usr/bin/turris-cagen new_ca remote gen_ca gen_server turris gen_client "$THIS_ID-$2"
+}
+
+prepare_client_token() {
+    local name="$THIS_ID-$1"
+    local target_dir="/tmp/netboot-tokens/$name/"
+    local token_file="/tmp/netboot-tokens/token-${name}.tar.gz"
+    local msg_file="/tmp/netboot-tokens/${name}.json"
+
+    mkdir -p  "$target_dir"
+    cp accepted/$1/remote/ca.crt "${target_dir}/ca.crt"
+    cp accepted/$1/remote/02.crt "${target_dir}/token.crt"
+    cp accepted/$1/remote/02.key "${target_dir}/token.key"
+
+    # generate configuration json
+    json_init
+    json_add_string "name" "$name"
+    json_add_string "hostname" "turris"
+    json_add_int "port" 11884
+    json_add_string "device_id" "$1"
+    json_add_object "ipv4_ips"
+        json_add_array "wan"
+            json_add_string "$2"
+        json_close_array
+        json_add_array "lan"
+        json_close_array
+    json_close_object
+    json_add_object "dhcp_names"
+        json_add_string "lan" ""
+        json_add_string "wan" ""
+    json_close_object
+    jshn -w > "${target_dir}/config.json"
+    tar czf "$token_file" "$target_dir"
+
+    # call foris-controller
+    json_init
+    json_add_string "token" $(cat "$token_file" | base64 -w 0)
+    jshn -w > "$msg_file"
+    foris-client-wrapper -m subordinates -a add_sub -i "$msg_file"
+
+    rm -rf  "$target_dir" "$token_file" "$msg_file"
+}
+
 accept() {
     [ -d "incoming/$1" ] || exit 1
     rm -rf "accepted/$1"
     mv "incoming/$1" "accepted/$1"
     head -c 16 /dev/urandom > accepted/$1/aes
     # store static lease
-    netboot-set-static-lease ${1} $(cat accepted/$1/mac)
+    new_ip=$(netboot-set-static-lease ${1} $(cat accepted/$1/mac))
+    # generate remote access CA and certificates (should create accepted/../remove dir)
+    generate_remote_access_certs "accepted/$1" "$1"
+    prepare_client_token "$1" "$new_ip"
     regen
 }
 
