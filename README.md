@@ -14,3 +14,12 @@ Netboot Workflow
 |                |           | server.sh                 | << `get_root` | rescue.sh |
 |                |           | ...                       | ...           | ...       |
 |                |           |                           |               | chroot    |
+
+Development
+-----------
+
+To deploy all the scripts directly into router you can simply run following script (might need to have you ssh-key deployed):
+
+```bash
+ROUTER_IP=192.168.1.1 ./dev-router-deploy.sh
+```
