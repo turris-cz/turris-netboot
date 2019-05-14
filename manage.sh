@@ -1,9 +1,16 @@
 #!/bin/sh
 . /usr/share/libubox/jshn.sh
 
-BASE_DIR="$HOME/clients"
+BASE_DIR="$(echo ~turris-netboot)/clients"
 
-[ "$(id -un)" = turris-netboot ] || exec su turris-netboot -- "$0" "$@"
+CMD="$0"
+ARGUMENTS="$@"
+
+set_netboot_user() {
+    local args=${1:-$ARGUMENTS}
+    [ "$(id -un)" = turris-netboot ] || exec su turris-netboot -- "$CMD" $args
+}
+
 
 JSON=""
 THIS_ID=$(/usr/bin/crypto-wrapper serial-number 2> /dev/null || echo "netboot_master")
@@ -40,6 +47,8 @@ list() {
 }
 
 get_rootfs() {
+    set_netboot_user
+
     mkdir -p "$HOME"/rootfs/
     cd "$HOME"/rootfs/
     if [ \! -f ./rootfs.tar.gz ] || [ "x$1" = "x-f" ]; then
@@ -73,6 +82,8 @@ get_rootfs() {
 }
 
 update_rootfs() {
+    set_netboot_user
+
     wget -O /tmp/rootfs-check.tar.gz.sha256 https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz.sha256
     sed -i 's|mox-netboot-.*|rootfs.tar.gz|' /tmp/rootfs-check.tar.gz.sha256
     cd "$HOME"/rootfs/
@@ -83,6 +94,8 @@ update_rootfs() {
 }
 
 regen() {
+    set_netboot_user regen
+
     cd "$BASE_DIR"/accepted
     [ -f ~/.ssh/reg_key.pub ] || ssh-keygen -t ed25519 -f ~/.ssh/reg_key -N "" -C "registration_key"
     cat > /srv/tftp/pxelinux.cfg/default-arm-mvebu-turris_mox << EOF
@@ -124,9 +137,11 @@ generate_remote_access_certs() {
 
 prepare_client_token() {
     local name="$THIS_ID-$1"
-    local target_dir="/tmp/netboot-tokens/$name/"
-    local token_file="/tmp/netboot-tokens/token-${name}.tar.gz"
-    local msg_file="/tmp/netboot-tokens/${name}.json"
+    local ip="$2"
+    local tmp_dir="/tmp/netboot-tokens"
+    local target_dir="$tmp_dir/$name/"
+    local token_file="$tmp_dir/token-${name}.tar.gz"
+    local msg_file="$tmp_dir/${name}.json"
 
     mkdir -p  "$target_dir"
     cp accepted/$1/remote/ca.crt "${target_dir}/ca.crt"
@@ -141,7 +156,7 @@ prepare_client_token() {
     json_add_string "device_id" "$1"
     json_add_object "ipv4_ips"
         json_add_array "wan"
-            json_add_string "$2"
+            json_add_string "$ip" "$ip"
         json_close_array
         json_add_array "lan"
         json_close_array
@@ -150,8 +165,8 @@ prepare_client_token() {
         json_add_string "lan" ""
         json_add_string "wan" ""
     json_close_object
-    jshn -w > "${target_dir}/config.json"
-    tar czf "$token_file" "$target_dir"
+    jshn -w > "${target_dir}/conf.json"
+    tar czf "$token_file" -C "$tmp_dir" "$name"
 
     # call foris-controller
     json_init
@@ -163,29 +178,38 @@ prepare_client_token() {
 }
 
 accept() {
+    # this should be run as root
     [ -d "incoming/$1" ] || exit 1
     rm -rf "accepted/$1"
     mv "incoming/$1" "accepted/$1"
     head -c 16 /dev/urandom > accepted/$1/aes
-    # store static lease
-    new_ip=$(netboot-set-static-lease ${1} $(cat accepted/$1/mac))
     # generate remote access CA and certificates (should create accepted/../remove dir)
     generate_remote_access_certs "accepted/$1" "$1"
+    # store static lease
+    local mac="$(cat accepted/$1/mac)"
+    local new_ip=$(netboot-set-static-lease ${1} ${mac} 2>/dev/null)
+    echo "IP address $new_ip was allocated for ${1} (${mac})"
     prepare_client_token "$1" "$new_ip"
+    chown -R turris-netboot:turris-netboot accepted/$1
     regen
 }
 
 revoke() {
+    set_netboot_user
+
     [ -d "accepted/$1" ] || exit 1
     rm -rf "accepted/$1"
     regen
 }
 
 register() {
-    KEY="$(head -c 256 | grep '^ssh-ed25519 [a-zA-Z0-9/+=]\+ [0-9A-F]\+$')"
+    set_netboot_user
+
+    KEY="$(head -c 256 | grep '^ssh-ed25519 [a-zA-Z0-9/+=]\+ [0-9A-F]\+@[0-9a-f:]\+$')"
     if [ "$KEY" ]; then
         SERIAL="$(echo "$KEY" | sed 's|.*\ \([0-9A-Z]\+\)@[0-9a-z:]\+$|\1|')"
         MAC="$(echo "$KEY" | sed 's|.*\ [0-9A-Z]\+@\([0-9a-z:]\+\)$|\1|')"
+        echo "Incomming '${SERIAL}' with '${MAC}'"
         mkdir -p incoming/$SERIAL
         echo "$KEY" > incoming/$SERIAL/ssh_key
         echo "$MAC" > incoming/$SERIAL/mac
@@ -202,17 +226,20 @@ if [ "x$2" = "x-j" ]; then
     JSON=1
 fi
 case $1 in
-    list-incoming) 
+    list-incoming)
+        set_netboot_user
         [ -z "$JSON" ] || echo "{"
         list "incoming"
         [ -z "$JSON" ] || echo "}"
         ;;
-    list-accepted) 
+    list-accepted)
+        set_netboot_user
         [ -z "$JSON" ] || echo "{"
         list "accepted"
         [ -z "$JSON" ] || echo "}"
         ;;
     list-all)
+        set_netboot_user
         [ -z "$JSON" ] || echo "{"
         list "accepted"
         [ -z "$JSON" ] || echo ","

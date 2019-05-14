@@ -46,7 +46,7 @@ read comm
 case "$comm" in
     get_root) get_root ;;
     get_root_overlay) get_root ;;
-    get_remote_access) tar -cf - --owner=root -C "$BASE_DIR"/clients/accepted/$ID/remote ;;
+    get_remote_access) tar -cf - --owner=root -C "$BASE_DIR"/clients/accepted/$ID remote ;;
     get_root_version) get_root_version ;;
     status)   echo "registered" ;;
     get_id)   echo "$ID" ;;
