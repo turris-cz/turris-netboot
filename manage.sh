@@ -21,26 +21,20 @@ die() {
 }
 
 list() {
-    cd "$1"
-    if [ -n "$JSON" ]; then
-        echo "\"$1\": ["
-    else
+    cd "$BASE_DIR/$1"
+    if [ -z "$JSON" ]; then
         echo "$1:" | sed -e 's|^a|A|' -e 's|^i|I|'
     fi
-    DELIM=""
     for i in */ssh_key; do
         [ -f "$i" ] || continue
         ID="$(dirname "$i")"
-        if [ -n "$JSON" ]; then
-            echo "$DELIM \"$ID\""
-            DELIM=","
-        else
+        if [ -z "$JSON" ]; then
             echo " * $ID"
+        else
+            json_add_string "$ID" "$ID"
         fi
     done
-    if [ -n "$JSON" ]; then
-        echo "]"
-    else
+    if [ -z "$JSON" ]; then
         echo
     fi
     cd "$BASE_DIR"
@@ -227,25 +221,35 @@ if [ "x$2" = "x-j" ]; then
 fi
 case $1 in
     list-incoming)
-        set_netboot_user
-        [ -z "$JSON" ] || echo "{"
+
+        json_init
+        json_add_array "incoming"
         list "incoming"
-        [ -z "$JSON" ] || echo "}"
+        json_close_array
+        [ -z "$JSON" ] || jshn -w
         ;;
+
     list-accepted)
-        set_netboot_user
-        [ -z "$JSON" ] || echo "{"
+
+        json_init
+        json_add_array "accepted"
         list "accepted"
-        [ -z "$JSON" ] || echo "}"
+        json_close_array
+        [ -z "$JSON" ] || jshn -w
         ;;
+
     list-all)
-        set_netboot_user
-        [ -z "$JSON" ] || echo "{"
+
+        json_init
+        json_add_array "accepted"
         list "accepted"
-        [ -z "$JSON" ] || echo ","
+        json_close_array
+        json_add_array "incoming"
         list "incoming"
-        [ -z "$JSON" ] || echo "}"
+        json_close_array
+        [ -z "$JSON" ] || jshn -w
         ;;
+
     accept) accept "$2" ;;
     revoke) revoke "$2" ;;
     register) register ;;
