@@ -238,7 +238,7 @@ case $1 in
         [ -z "$JSON" ] || jshn -w
         ;;
 
-    list-all)
+    list-all|list)
 
         json_init
         json_add_array "accepted"
@@ -267,7 +267,7 @@ Available commands:
 
     list-incoming       List routers waiting to be registered
     list-accepted       List registered routers
-    list-all            List both types of routers
+    list-all|list       List both types of routers
 
     accept <serial>     Accept routers request for registration
     revoke <serial>     Revoke routers access
