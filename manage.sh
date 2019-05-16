@@ -23,7 +23,7 @@ die() {
 list() {
     cd "$BASE_DIR/$1"
     if [ -z "$JSON" ]; then
-        echo "$1:" | sed -e 's|^a|A|' -e 's|^i|I|'
+        echo "$1:" | sed -e 's|^a|A|' -e 's|^i|I|' -e 's|^t|T|'
     fi
     for i in */ssh_key; do
         [ -f "$i" ] || continue
@@ -138,9 +138,9 @@ prepare_client_token() {
     local msg_file="$tmp_dir/${name}.json"
 
     mkdir -p  "$target_dir"
-    cp accepted/$1/remote/ca.crt "${target_dir}/ca.crt"
-    cp accepted/$1/remote/02.crt "${target_dir}/token.crt"
-    cp accepted/$1/remote/02.key "${target_dir}/token.key"
+    cp transfering/$1/remote/ca.crt "${target_dir}/ca.crt"
+    cp transfering/$1/remote/02.crt "${target_dir}/token.crt"
+    cp transfering/$1/remote/02.key "${target_dir}/token.key"
 
     # generate configuration json
     json_init
@@ -174,17 +174,19 @@ prepare_client_token() {
 accept() {
     # this should be run as root
     [ -d "incoming/$1" ] || exit 1
-    rm -rf "accepted/$1"
-    mv "incoming/$1" "accepted/$1"
-    head -c 16 /dev/urandom > accepted/$1/aes
-    # generate remote access CA and certificates (should create accepted/../remove dir)
-    generate_remote_access_certs "accepted/$1" "$1"
+    rm -rf "accepted/$1" "transfering/$1"
+    mv "incoming/$1" "transfering/$1"
+    head -c 16 /dev/urandom > transfering/$1/aes
+    # generate remote access CA and certificates (should create transfering/../remove dir)
+    generate_remote_access_certs "transfering/$1" "$1"
     # store static lease
-    local mac="$(cat accepted/$1/mac)"
+    local mac="$(cat transfering/$1/mac)"
     local new_ip=$(netboot-set-static-lease ${1} ${mac} 2>/dev/null)
     echo "IP address $new_ip was allocated for ${1} (${mac})"
     prepare_client_token "$1" "$new_ip"
-    chown -R turris-netboot:turris-netboot accepted/$1
+    chown -R turris-netboot:turris-netboot transfering/$1
+
+    mv "transfering/$1" "accepted/$1"
     regen
 }
 
@@ -215,6 +217,11 @@ MYSELF="$(readlink -f "$0")"
 mkdir -p "$BASE_DIR"
 mkdir -p "$BASE_DIR"/accepted
 mkdir -p "$BASE_DIR"/incoming
+mkdir -p "$BASE_DIR"/transfering
+chown turris-netboot:turris-netboot "${BASE_DIR}"/accepted
+chown turris-netboot:turris-netboot "${BASE_DIR}"/incoming
+chown turris-netboot:turris-netboot "${BASE_DIR}"/transfering
+
 cd "$BASE_DIR"
 if [ "x$2" = "x-j" ]; then
     JSON=1
@@ -238,6 +245,15 @@ case $1 in
         [ -z "$JSON" ] || jshn -w
         ;;
 
+    list-transfering)
+
+        json_init
+        json_add_array "transfering"
+        list "transfering"
+        json_close_array
+        [ -z "$JSON" ] || jshn -w
+        ;;
+
     list-all|list)
 
         json_init
@@ -246,6 +262,9 @@ case $1 in
         json_close_array
         json_add_array "incoming"
         list "incoming"
+        json_close_array
+        json_add_array "transfering"
+        list "transfering"
         json_close_array
         [ -z "$JSON" ] || jshn -w
         ;;
@@ -267,6 +286,7 @@ Available commands:
 
     list-incoming       List routers waiting to be registered
     list-accepted       List registered routers
+    list-transfering    List routers which are to be moved from incoming to accepted
     list-all|list       List both types of routers
 
     accept <serial>     Accept routers request for registration
