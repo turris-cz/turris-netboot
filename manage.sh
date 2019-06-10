@@ -177,14 +177,16 @@ accept() {
     rm -rf "accepted/$1" "transfering/$1"
     mv "incoming/$1" "transfering/$1"
     head -c 16 /dev/urandom > transfering/$1/aes
-    # generate remote access CA and certificates (should create transfering/../remove dir)
-    generate_remote_access_certs "transfering/$1" "$1"
-    # store static lease
     local mac="$(cat transfering/$1/mac)"
-    local new_ip=$(netboot-set-static-lease ${1} ${mac} 2>/dev/null)
-    echo "IP address $new_ip was allocated for ${1} (${mac})"
-    prepare_client_token "$1" "$new_ip"
-    chown -R turris-netboot:turris-netboot transfering/$1
+    if [ -n "$mac" ]; then
+        # generate remote access CA and certificates (should create transfering/../remove dir)
+        generate_remote_access_certs "transfering/$1" "$1"
+        # store static lease
+        local new_ip=$(netboot-set-static-lease ${1} ${mac} 2>/dev/null)
+        echo "IP address $new_ip was allocated for ${1} (${mac})"
+        prepare_client_token "$1" "$new_ip"
+        chown -R turris-netboot:turris-netboot transfering/$1
+    fi
 
     mv "transfering/$1" "accepted/$1"
     regen
@@ -201,10 +203,11 @@ revoke() {
 register() {
     set_netboot_user
 
-    KEY="$(head -c 256 | grep '^ssh-ed25519 [a-zA-Z0-9/+=]\+ [0-9A-F]\+@[0-9a-f:]\+$')"
+    KEY="$(head -c 256 | grep '^ssh-ed25519 [a-zA-Z0-9/+=]\+ [0-9A-F@a-z:]\+$')"
     if [ "$KEY" ]; then
-        SERIAL="$(echo "$KEY" | sed 's|.*\ \([0-9A-Z]\+\)@[0-9a-z:]\+$|\1|')"
-        MAC="$(echo "$KEY" | sed 's|.*\ [0-9A-Z]\+@\([0-9a-z:]\+\)$|\1|')"
+        SERIAL="$(echo "$KEY" | sed -n 's|.*\ \([0-9A-Z]\+\)@[0-9a-z:]\+$|\1|p')"
+        [ -n "$SERIAL" ] || SERIAL="$(echo "$KEY" | sed -n 's|.*\ \([0-9A-Z]\+\)$|\1|p')"
+        MAC="$(echo "$KEY" | sed -n 's|.*\ [0-9A-Z]\+@\([0-9a-z:]\+\)$|\1|p')"
         echo "Incomming '${SERIAL}' with '${MAC}'"
         mkdir -p incoming/$SERIAL
         echo "$KEY" > incoming/$SERIAL/ssh_key
