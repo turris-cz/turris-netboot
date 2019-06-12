@@ -185,7 +185,7 @@ accept() {
         local new_ip=$(netboot-set-static-lease ${1} ${mac} 2>/dev/null)
         echo "IP address $new_ip was allocated for ${1} (${mac})"
         prepare_client_token "$1" "$new_ip"
-        chown -R turris-netboot:turris-netboot transfering/$1
+        chown -R turris-netboot transfering/$1
     fi
 
     mv "transfering/$1" "accepted/$1"
@@ -221,9 +221,9 @@ mkdir -p "$BASE_DIR"
 mkdir -p "$BASE_DIR"/accepted
 mkdir -p "$BASE_DIR"/incoming
 mkdir -p "$BASE_DIR"/transfering
-chown turris-netboot:turris-netboot "${BASE_DIR}"/accepted
-chown turris-netboot:turris-netboot "${BASE_DIR}"/incoming
-chown turris-netboot:turris-netboot "${BASE_DIR}"/transfering
+chown turris-netboot "${BASE_DIR}"/accepted
+chown turris-netboot "${BASE_DIR}"/incoming
+chown turris-netboot "${BASE_DIR}"/transfering
 
 cd "$BASE_DIR"
 if [ "x$2" = "x-j" ]; then
