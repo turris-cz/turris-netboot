@@ -24,7 +24,7 @@ get_root_version() {
 setup() {
     SSID="$(uci -q get wireless.@wifi-iface[0].ssid)"
     KEY="$(uci -q get wireless.@wifi-iface[0].key)"
-    COUNTRY="$(uci -q get wireless.@wifi-iface[0].country)"
+    COUNTRY="$(uci -q get wireless.@wifi-device[0].country)"
     {
         echo '#!/bin/sh'
         echo 'cat > /etc/config/netboot << EOF'
