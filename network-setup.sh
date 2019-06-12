@@ -39,6 +39,7 @@ for wifi in $(cd /sys/class/ieee80211; ls -1d phy*); do
     KEY="$(get_option key @@KEY@@)"
     CHANNEL="$(get_option channel auto24)"
     HTMODE="$(get_option htmode)"
+    COUNTRY="$(get_option country @@COUNTRY@@)"
     if [ "$CHANNEL" = auto24 ]; then
         CHANNEL="$(random 12)"
     fi
@@ -65,6 +66,7 @@ config wifi-device 'radio$RADIO'
         option hwmode '$HWMODE'
         option macaddr '$MAC'
         option htmode '$HTMODE'
+        option country '$COUNTRY'
         option disabled '0'
 
 config wifi-iface 'default_radio$RADIO'

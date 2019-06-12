@@ -24,6 +24,7 @@ get_root_version() {
 setup() {
     SSID="$(uci -q get wireless.@wifi-iface[0].ssid)"
     KEY="$(uci -q get wireless.@wifi-iface[0].key)"
+    COUNTRY="$(uci -q get wireless.@wifi-iface[0].country)"
     {
         echo '#!/bin/sh'
         echo 'cat > /etc/config/netboot << EOF'
@@ -38,14 +39,14 @@ setup() {
             cat "$BASE_DIR"/rootfs/postsetup.sh 2> /dev/null
         fi
         cat "$BASE_DIR"/rootfs/postsetup-$ID.sh 2> /dev/null
-    } | sed -e 's|@@SSID@@|'"$SSID|" -e 's|@@KEY@@|'"$KEY|"
+    } | sed -e 's|@@SSID@@|'"$SSID|" -e 's|@@KEY@@|'"$KEY|" -e 's|@@COUNTRY@@|'"$COUNTRY|" 
 }
 
 comm=""
 read comm
 case "$comm" in
     get_root) get_root ;;
-    get_root_overlay) get_root ;;
+    get_root_overlay) get_root_overlay ;;
     get_remote_access) tar -cf - --owner=root -C "$BASE_DIR"/clients/accepted/$ID remote ;;
     get_root_version) get_root_version ;;
     status)   echo "registered" ;;
