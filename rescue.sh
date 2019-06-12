@@ -119,8 +119,11 @@ TIMEOUT="$(my_netboot get_timeout 2> /dev/null)"
 [ -n "$TIMEOUT" ] || TIMEOUT=60
 ( sleep 120; while sleep $TIMEOUT; do [ "$(my_netboot get_root_version)" = "$(cat /chroot/root-version)" ] || reboot -f; done ) &
 mkdir -p /chroot/etc/ssl/ca/remote
-my_netboot get_remote_access 2> /dev/null | tar -C /chroot/etc/ssl/ca -xvf - 2> /dev/null || die "Can't get remote access"
-configure_fosquitto /chroot
+if my_netboot get_remote_access 2> /dev/null | tar -C /chroot/etc/ssl/ca -xvf - 2> /dev/null; then
+	configure_fosquitto /chroot
+else
+	echo "Can't get remote access certs :-("
+fi
 my_netboot setup > /chroot/etc/rc.local
 for i in sys proc dev dev/pts; do
     mount -o bind /$i /chroot/$i
