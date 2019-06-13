@@ -75,7 +75,6 @@ config wifi-iface 'default_radio$RADIO'
         option mode 'ap'
         option ssid '$SSID'
         option key '$KEY'
-        option wmm '0'
         option encryption 'psk2+ccmp'
         option disabled '0'
 
