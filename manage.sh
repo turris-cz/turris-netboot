@@ -88,11 +88,12 @@ update_rootfs() {
 }
 
 regen() {
-    set_netboot_user regen
+    set_netboot_user
 
     cd "$BASE_DIR"/accepted
     [ -f ~/.ssh/reg_key.pub ] || ssh-keygen -t ed25519 -f ~/.ssh/reg_key -N "" -C "registration_key"
-    cat > /srv/tftp/pxelinux.cfg/default-arm-mvebu-turris_mox << EOF
+    if [ "x$1" = "x-f" ] || [ "$(find "$BASE_DIR"/accepted -newer /srv/tftp/pxelinux.cfg/default-arm-mvebu-turris_mox)" ]; then
+        cat > /srv/tftp/pxelinux.cfg/default-arm-mvebu-turris_mox << EOF
 default pair
 prompt 0
 timeout 0
@@ -101,25 +102,27 @@ label pair
     kernel /turris-netboot/mox
     append reg_key=$(grep '^[^-]' ~/.ssh/reg_key | tr '\n' ' ' | sed 's| ||g') pub_key=$(ssh-keyscan localhost 2> /dev/null | sed -n 's|localhost ssh-ed25519 ||p') console=ttyMV0,115200 earlycon=ar3700_uart,0xd0012000
 EOF
-    {
-    echo -n "no-agent-forwarding,no-port-forwarding,no-X11-forwarding,"
-    echo -n "command=\"$MYSELF register\" "
-    cat ~/.ssh/reg_key.pub
-    for i in */ssh_key; do
-        [ -f "$i" ] || continue
-        echo -n "environment=\"ID=$(dirname "$i")\","
+        {
         echo -n "no-agent-forwarding,no-port-forwarding,no-X11-forwarding,"
-        echo -n "command=\"export ID=$(dirname "$i"); $(dirname "$MYSELF")/netboot-server\" "
-        cat "$i"
-    done
-    } > ~/.ssh/authorized_keys
-    chmod 0644 ~/.ssh/authorized_keys
+        echo -n "command=\"$MYSELF register\" "
+        cat ~/.ssh/reg_key.pub
+        for i in */ssh_key; do
+            [ -f "$i" ] || continue
+            echo -n "environment=\"ID=$(dirname "$i")\","
+            echo -n "no-agent-forwarding,no-port-forwarding,no-X11-forwarding,"
+            echo -n "command=\"export ID=$(dirname "$i"); $(dirname "$MYSELF")/netboot-server\" "
+            cat "$i"
+        done
+        } > ~/.ssh/authorized_keys
+        chmod 0644 ~/.ssh/authorized_keys
+    fi
     get_rootfs
     cd "$BASE_DIR"/accepted
     for i in */aes; do
         [ -f "$i" ] || continue
         if [ /srv/tftp/turris-netboot/mox_$(dirname "$i") -ot /srv/tftp/turris-netboot/mox ] || \
-           [ \! -f /srv/tftp/turris-netboot/mox_$(dirname "$i") ]; then
+           [ /srv/tftp/turris-netboot/mox_$(dirname "$i") -ot "$i" ] || \
+           [ \! -f /srv/tftp/turris-netboot/mox_$(dirname "$i") ] || [ "x$1" = "x-f" ]; then
             netboot-encrypt /srv/tftp/turris-netboot/mox "$i" /srv/tftp/turris-netboot/mox_$(dirname "$i")
         fi
     done
@@ -275,7 +278,7 @@ case $1 in
     accept) accept "$2" ;;
     revoke) revoke "$2" ;;
     register) register ;;
-    regen) regen ;;
+    regen) regen "$2" ;;
     get_rootfs) get_rootfs ;;
     update_rootfs)
         if [ "x$2" = "x-s" ]; then
