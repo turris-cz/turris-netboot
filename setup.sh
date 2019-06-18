@@ -1,7 +1,7 @@
 #!/bin/sh
 uci set dhcp.@dnsmasq[0].enable_tftp=1
 uci set dhcp.@dnsmasq[0].tftp_root='/srv/tftp'
-mkdir -p /srv/tftp
+mkdir -p /srv/tftp /srv/turris-netboot
 uci commit
 /etc/init.d/dnsmasq restart
 grep -q '^turris-netboot:' /etc/passwd || useradd -md /srv/turris-netboot -s /bin/ash turris-netboot
