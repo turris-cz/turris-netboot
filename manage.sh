@@ -88,7 +88,7 @@ update_rootfs() {
 }
 
 regen() {
-    set_netboot_user
+    set_netboot_user regen
 
     cd "$BASE_DIR"/accepted
     [ -f ~/.ssh/reg_key.pub ] || ssh-keygen -t ed25519 -f ~/.ssh/reg_key -N "" -C "registration_key"
