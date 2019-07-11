@@ -7,7 +7,7 @@ CMD="$0"
 ARGUMENTS="$@"
 
 set_netboot_user() {
-    local args=${1:-$ARGUMENTS}
+    args="${@:-$ARGUMENTS}"
     [ "$(id -un)" = turris-netboot ] || exec su turris-netboot -- "$CMD" $args
 }
 
@@ -41,7 +41,7 @@ list() {
 }
 
 get_rootfs() {
-    set_netboot_user
+    set_netboot_user get_rootfs $1
 
     mkdir -p "$HOME"/rootfs/
     cd "$HOME"/rootfs/
@@ -76,7 +76,7 @@ get_rootfs() {
 }
 
 update_rootfs() {
-    set_netboot_user
+    set_netboot_user update_rootfs
 
     wget -O /tmp/rootfs-check.tar.gz.sha256 https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz.sha256
     sed -i 's|mox-netboot-.*|rootfs.tar.gz|' /tmp/rootfs-check.tar.gz.sha256
@@ -88,11 +88,13 @@ update_rootfs() {
 }
 
 regen() {
-    set_netboot_user regen
+    set_netboot_user regen $1
 
     cd "$BASE_DIR"/accepted
     [ -f ~/.ssh/reg_key.pub ] || ssh-keygen -t ed25519 -f ~/.ssh/reg_key -N "" -C "registration_key"
-    if [ "x$1" = "x-f" ] || [ \! -f /srv/tftp/pxelinux.cfg/default-arm-mvebu-turris_mox ] || [ ~/.ssh/reg_key -nt /srv/tftp/pxelinux.cfg/default-arm-mvebu-turris_mox ]; then
+    if [ "x$1" = "x-f" ] || [ \! -f /srv/tftp/pxelinux.cfg/default-arm-mvebu-turris_mox ] || \
+       [ ~/.ssh/reg_key -nt /srv/tftp/pxelinux.cfg/default-arm-mvebu-turris_mox ] || \
+       [ -z "$(grep 'reg_key=[^[:blank:]]')" ]; then
         cat > /srv/tftp/pxelinux.cfg/default-arm-mvebu-turris_mox << EOF
 default pair
 prompt 0
@@ -116,7 +118,7 @@ EOF
     done
     } > ~/.ssh/authorized_keys
     chmod 0644 ~/.ssh/authorized_keys
-    get_rootfs
+    get_rootfs $1
     cd "$BASE_DIR"/accepted
     for i in */aes; do
         [ -f "$i" ] || continue
