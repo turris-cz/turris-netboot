@@ -20,6 +20,16 @@ die() {
     exit 1
 }
 
+# Ensure serial number is in hexadecimal format, input can be either hexa or decimal
+ensure_hexa() {
+    # Decimal keys don't have leading zeros
+    if expr "$1" : 000 > /dev/null; then
+        echo "$1"
+    else
+        printf '%016X\n' "$1"
+    fi
+}
+
 list() {
     cd "$BASE_DIR/$1"
     if [ -z "$JSON" ]; then
@@ -27,7 +37,7 @@ list() {
     fi
     for i in */ssh_key; do
         [ -f "$i" ] || continue
-        ID="$(dirname "$i")"
+        ID="$(printf %d 0x$(dirname "$i"))"
         if [ -z "$JSON" ]; then
             echo " * $ID"
         else
@@ -46,6 +56,7 @@ get_rootfs() {
     mkdir -p "$HOME"/rootfs/
     cd "$HOME"/rootfs/
     if [ \! -f ./rootfs.tar.gz ] || [ "x$1" = "x-f" ]; then
+        echo "Getting new rootfs..." >&2
         rm -f rootfs-new.tar.gz*
         wget -O "$HOME"/rootfs/rootfs-new.tar.gz https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz || die "Can't download tarball"
         wget -O "$HOME"/rootfs/rootfs-new.tar.gz.sha256 https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz.sha256 || die "Can't download checksum"
@@ -91,10 +102,11 @@ regen() {
     set_netboot_user regen $1
 
     cd "$BASE_DIR"/accepted
+    echo "Regenerating configuration..." >&2
     [ -f ~/.ssh/reg_key.pub ] || ssh-keygen -t ed25519 -f ~/.ssh/reg_key -N "" -C "registration_key"
     if [ "x$1" = "x-f" ] || [ \! -f /srv/tftp/pxelinux.cfg/default-arm-mvebu-turris_mox ] || \
        [ ~/.ssh/reg_key -nt /srv/tftp/pxelinux.cfg/default-arm-mvebu-turris_mox ] || \
-       [ -z "$(grep 'reg_key=[^[:blank:]]')" ]; then
+       [ -z "$(grep 'reg_key=[^[:blank:]]' /srv/tftp/pxelinux.cfg/default-arm-mvebu-turris_mox)" ]; then
         cat > /srv/tftp/pxelinux.cfg/default-arm-mvebu-turris_mox << EOF
 default pair
 prompt 0
@@ -120,6 +132,7 @@ EOF
     chmod 0644 ~/.ssh/authorized_keys
     get_rootfs $1
     cd "$BASE_DIR"/accepted
+    echo "Signing kernels..." >&2
     for i in */aes; do
         [ -f "$i" ] || continue
         if [ /srv/tftp/turris-netboot/mox_$(dirname "$i") -ot /srv/tftp/turris-netboot/mox ] || \
@@ -277,8 +290,8 @@ case $1 in
         [ -z "$JSON" ] || jshn -w
         ;;
 
-    accept) accept "$2" ;;
-    revoke) revoke "$2" ;;
+    accept) accept "$(ensure_hexa "$2")" ;;
+    revoke) revoke "$(ensure_hexa "$2")" ;;
     register) register ;;
     regen) regen "$2" ;;
     get_rootfs) get_rootfs ;;
