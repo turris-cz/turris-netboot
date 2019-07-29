@@ -222,6 +222,10 @@ revoke() {
     [ -d "accepted/$1" ] || exit 1
     rm -rf "accepted/$1"
     rm -f "/srv/tftp/turris-netboot/mox_$1"
+    rm -rf "/etc/fosquitto/bridges/$1"
+    uci delete "foris-controller-subordinates.$1"
+    uci delete "dhcp.$1"
+    uci commit
     regen
 }
 
