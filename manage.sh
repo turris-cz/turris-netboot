@@ -186,6 +186,12 @@ prepare_client_token() {
     jshn -w > "$msg_file"
     foris-client-wrapper -m subordinates -a add_sub -i "$msg_file"
 
+    # set custom name to decadic serial for user friendliness
+    uci set "foris-controller-subordinates.$1"="subordinate"
+    uci set "foris-controller-subordinates.$1.custom_name"="$(printf %d "0x$1")"
+    uci commit foris-controller-subordinates
+
+    # Cleanup
     rm -rf  "$target_dir" "$token_file" "$msg_file"
 }
 
