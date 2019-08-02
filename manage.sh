@@ -233,7 +233,7 @@ register() {
         SERIAL="$(echo "$KEY" | sed -n 's|.*\ \([0-9A-Z]\+\)@[0-9a-z:]\+$|\1|p')"
         [ -n "$SERIAL" ] || SERIAL="$(echo "$KEY" | sed -n 's|.*\ \([0-9A-Z]\+\)$|\1|p')"
         MAC="$(echo "$KEY" | sed -n 's|.*\ [0-9A-Z]\+@\([0-9a-z:]\+\)$|\1|p')"
-        echo "Incomming '${SERIAL}' with '${MAC}'"
+        echo "Incoming '${SERIAL}' with '${MAC}'"
         mkdir -p incoming/$SERIAL
         echo "$KEY" > incoming/$SERIAL/ssh_key
         echo "$MAC" > incoming/$SERIAL/mac
