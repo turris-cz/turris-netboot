@@ -37,7 +37,7 @@ list() {
     fi
     for i in */ssh_key; do
         [ -f "$i" ] || continue
-        ID="$(printf %d 0x$(dirname "$i"))"
+        ID="$(printf '%d' "0x$(dirname "$i")")"
         if [ -z "$JSON" ]; then
             echo " * $ID"
         else
@@ -201,12 +201,12 @@ accept() {
     rm -rf "accepted/$1" "transfering/$1"
     mv "incoming/$1" "transfering/$1"
     head -c 16 /dev/urandom > transfering/$1/aes
-    local mac="$(cat transfering/$1/mac)"
+    local mac="$(cat "transfering/$1/mac")"
     if [ -n "$mac" ]; then
         # generate remote access CA and certificates (should create transfering/../remove dir)
         generate_remote_access_certs "transfering/$1" "$1"
         # store static lease
-        local new_ip=$(netboot-set-static-lease ${1} ${mac} 2>/dev/null)
+        local new_ip="$(netboot-set-static-lease "$1" "$mac" 2>/dev/null)"
         echo "IP address $new_ip was allocated for ${1} (${mac})"
         prepare_client_token "$1" "$new_ip"
         chown -R turris-netboot transfering/$1
