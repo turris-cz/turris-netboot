@@ -20,6 +20,16 @@ die() {
     exit 1
 }
 
+rand() {
+    random_hex="$(head -c 4 /dev/urandom | hexdump -e '"%02x"')"
+    random_int="$(printf '%d' "0x$random_hex")"
+    if [ "$1" ]; then
+        echo "$(expr "$random_int" % "$1")"
+    else
+        echo "$random_int"
+    fi
+}
+
 # Ensure serial number is in hexadecimal format, input can be either hexa or decimal
 ensure_hexa() {
     # Decimal keys don't have leading zeros
@@ -305,7 +315,7 @@ case $1 in
     update_rootfs)
         if [ "x$2" = "x-s" ]; then
             # Sleep up to 2 hours
-            sleep "$(expr $(printf '%d' 0x$(head -c 2 /dev/urandom | hexdump -e '"%02x"')) % 7200)"
+            sleep "$(rand 7200)"
         fi
         update_rootfs
         ;;
