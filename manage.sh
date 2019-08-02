@@ -106,7 +106,7 @@ regen() {
     [ -f ~/.ssh/reg_key.pub ] || ssh-keygen -t ed25519 -f ~/.ssh/reg_key -N "" -C "registration_key"
     if [ "x$1" = "x-f" ] || [ \! -f /srv/tftp/pxelinux.cfg/default-arm-mvebu-turris_mox ] || \
        [ ~/.ssh/reg_key -nt /srv/tftp/pxelinux.cfg/default-arm-mvebu-turris_mox ] || \
-       [ -z "$(grep 'reg_key=[^[:blank:]]' /srv/tftp/pxelinux.cfg/default-arm-mvebu-turris_mox)" ]; then
+       grep -q 'reg_key=[^[:blank:]]' /srv/tftp/pxelinux.cfg/default-arm-mvebu-turris_mox; then
         cat > /srv/tftp/pxelinux.cfg/default-arm-mvebu-turris_mox << EOF
 default pair
 prompt 0
