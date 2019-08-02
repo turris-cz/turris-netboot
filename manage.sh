@@ -54,7 +54,7 @@ get_rootfs() {
     set_netboot_user get_rootfs $1
 
     mkdir -p "$HOME"/rootfs/
-    cd "$HOME"/rootfs/
+    cd "$HOME"/rootfs/ || die "Can't cd to $HOME/rootfs/"
     if [ \! -f ./rootfs.tar.gz ] || [ "x$1" = "x-f" ]; then
         echo "Getting new rootfs..." >&2
         rm -f rootfs-new.tar.gz*
@@ -250,7 +250,7 @@ chown turris-netboot "${BASE_DIR}"/accepted
 chown turris-netboot "${BASE_DIR}"/incoming
 chown turris-netboot "${BASE_DIR}"/transfering
 
-cd "$BASE_DIR"
+cd "$BASE_DIR" || die "Can't cd to $BASE_DIR"
 if [ "x$2" = "x-j" ]; then
     JSON=1
 fi
