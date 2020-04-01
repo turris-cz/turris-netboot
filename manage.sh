@@ -109,6 +109,7 @@ update_rootfs() {
 }
 
 regen() {
+    chown -Rh turris-netboot /srv/tftp/turris-netboot /srv/tftp/pxelinux.cfg/default-arm-mvebu-turris_mox
     set_netboot_user regen $1
 
     cd "$BASE_DIR"/accepted
