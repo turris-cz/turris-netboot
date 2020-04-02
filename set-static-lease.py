@@ -56,7 +56,7 @@ if device_mac in macs:
 static_ips = [ipaddress.ip_address(e["ip"]) for e in records if e["ip"] != "ignore"]
 router_ip = ipaddress.ip_address(lan_ip)
 lan_network = ipaddress.ip_network(f"{lan_ip}/{lan_netmask}", strict=False)
-dynamic_start = router_ip + dhcp_start
+dynamic_start = lan_network.network_address + dhcp_start
 dynamic_last = dynamic_start + dhcp_limit
 
 free_ip = None
@@ -71,7 +71,7 @@ while iter_ip in lan_network:
 if not free_ip:
     # Try to obtain ip before dynamic range
     iter_ip = dynamic_start - 1
-    while iter_ip > router_ip:
+    while iter_ip > lan_network.network_address:
         if iter_ip not in static_ips:
             free_ip = iter_ip
             break
