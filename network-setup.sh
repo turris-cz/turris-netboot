@@ -2,6 +2,7 @@
 SERIAL="$(cat /sys/devices/platform/soc/soc:internal-regs@d0000000/soc:internal-regs@d0000000:crypto@0/mox_serial_number)"
 uci set network.lan.ifname="$(cd /sys/class/net/; ls -1d eth* lan* | tr '\n' ' ')"
 uci set network.lan.proto='dhcp'
+uci set network.lan.macaddr='$(cat /sys/class/net/eth0/address)'
 uci set network.lan.force_link='1'
 uci set network.lan.type='bridge'
 uci set network.wan.ifname=''
