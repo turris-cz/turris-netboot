@@ -36,11 +36,11 @@ for wifi in $(cd /sys/class/ieee80211; ls -1d phy*); do
     WIFIID="${VENDOR}_$MODEL"
 
     DEF="$(get_option network default)"
-    SSID="$(get_option ssid @@SSID@@)"
-    KEY="$(get_option key @@KEY@@)"
+    SSID="$(get_option ssid '@@SSID@@')"
+    KEY="$(get_option key '@@KEY@@')"
     CHANNEL="$(get_option channel auto24)"
     HTMODE="$(get_option htmode)"
-    COUNTRY="$(get_option country @@COUNTRY@@)"
+    COUNTRY="$(get_option country '@@COUNTRY@@')"
     if [ "$CHANNEL" = auto24 ]; then
         CHANNEL="$(random 12)"
     fi
