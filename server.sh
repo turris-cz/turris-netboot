@@ -56,7 +56,8 @@ case "$comm" in
     get_id)   echo "$ID" ;;
     get_version)   echo "$ID" ;;
     get_aes)  cat "$BASE_DIR"/clients/accepted/$ID/aes | hexdump -e '4/4 "%02x "' ;;
-    get_timeout)  uci -q get netboot.setup.timeout || echo 60 ;;
+    get_timeout)  uci -q get netboot.setup.timeout || echo 20 ;;
+    get_retry)  uci -q get netboot.setup.retry || echo 3 ;;
     setup)  setup ;;
     *) echo "Unknown command" ;;
 esac

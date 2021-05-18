@@ -34,6 +34,25 @@ get_reg_keys() {
     sed -n 's|^pub_key=|'"$SERVER_IP"' ssh-ed25519 |p' > /root/.ssh/known_hosts
 }
 
+ssh_watchdog() {
+    local timeout="$1"
+    local retry="$2"
+    local try=0
+    local version=""
+
+    sleep 120 # initial timeout to boot up
+    while [ "$try" -lt "$retry" ]; do
+        sleep "$timeout"
+        version="$(my_netboot get_root_version)"
+        if [ -z "$version" -o "$version" != "$(cat /chroot/root-version)" ]; then
+            try="$((try + 1))"
+        else
+            try=0
+        fi
+    done
+    reboot -f
+}
+
 my_netboot() {
     echo "$1" | ssh -i /root/.ssh/my_ssh_key $SSH_OPTS turris-netboot@"$SERVER_IP"
 }
@@ -116,8 +135,10 @@ my_netboot get_root | tar -C /chroot -xzvf - || die "Can't get rootfs"
 my_netboot get_root_overlay 2> /dev/null | tar -C /chroot -xvf - 2> /dev/null || :
 my_netboot get_root_version > /chroot/root-version
 TIMEOUT="$(my_netboot get_timeout 2> /dev/null)"
-[ -n "$TIMEOUT" ] || TIMEOUT=60
-( sleep 120; while sleep $TIMEOUT; do [ "$(my_netboot get_root_version)" = "$(cat /chroot/root-version)" ] || reboot -f; done ) &
+[ -n "$TIMEOUT" ] || TIMEOUT=20
+RETRY="$(my_netboot get_retry 2> /dev/null)"
+[ -n "$RETRY" ] || RETRY=3
+ssh_watchdog "$TIMEOUT" "$RETRY" &
 mkdir -p /chroot/etc/ssl/ca/remote
 if my_netboot get_remote_access 2> /dev/null | tar -C /chroot/etc/ssl/ca -xvf - 2> /dev/null; then
 	configure_fosquitto /chroot
