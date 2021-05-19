@@ -6,6 +6,8 @@ uci set network.lan.macaddr="$(cat /sys/class/net/eth0/address)"
 uci set network.lan.force_link='1'
 uci set network.lan.type='bridge'
 uci set network.wan.ifname=''
+uci set dhcp.lan.ra=disabled
+uci set dhcp.lan.dhcpv6=disabled
 uci delete network.lan.ipaddr
 uci delete network.lan.netmask
 uci delete network.lan.ip6assign
