@@ -1,0 +1,4 @@
+turris-netboot ALL=(root) NOPASSWD:/sbin/uci -q get wireless*
+turris-netboot ALL=(root) NOPASSWD:/bin/cat /etc/config/netboot
+turris-netboot ALL=(root) NOPASSWD:/bin/sha256sum /etc/config/netboot
+turris-netboot ALL=(root) NOPASSWD:/bin/sha256sum /etc/config/wireless

@@ -16,19 +16,20 @@ get_root() {
 }
 
 get_root_version() {
-    find /etc/config/wireless /etc/config/netboot "$BASE_DIR"/rootfs/overlay/$ID "$BASE_DIR"/rootfs/overlay/common -type f -exec sha256sum \{\} \; 2> /dev/null \
-    | sort | \
-    cat - "$BASE_DIR"/rootfs/rootfs.tar.gz.sha256 | sha256sum
+    wireless_sha="$(sudo sha256sum /etc/config/wireless)"
+    netboot_sha="$(sudo sha256sum /etc/config/netboot)"
+    overlay_sha="$(find "$BASE_DIR"/rootfs/overlay/$ID "$BASE_DIR"/rootfs/overlay/common -type f -exec sha256sum \{\} \; 2> /dev/null | sort)"
+    echo "$(cat "$BASE_DIR"/rootfs/rootfs.tar.gz.sha256)" "$wireless_sha" "$netboot_sha" "$overlay_sha" | sha256sum
 }
 
 setup() {
-    SSID="$(uci -q get wireless.@wifi-iface[0].ssid)"
-    KEY="$(uci -q get wireless.@wifi-iface[0].key)"
-    COUNTRY="$(uci -q get wireless.@wifi-device[0].country)"
+    SSID="$(sudo uci -q get wireless.@wifi-iface[0].ssid)"
+    KEY="$(sudo uci -q get wireless.@wifi-iface[0].key)"
+    COUNTRY="$(sudo uci -q get wireless.@wifi-device[0].country)"
     {
         echo '#!/bin/sh'
         echo 'cat > /etc/config/netboot << EOF'
-        cat /etc/config/netboot
+        sudo cat /etc/config/netboot
         echo EOF
         echo
 
