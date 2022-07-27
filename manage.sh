@@ -65,45 +65,46 @@ get_rootfs() {
 
     mkdir -p "$HOME"/rootfs/
     cd "$HOME"/rootfs/ || die "Can't cd to $HOME/rootfs/"
-    if [ \! -f ./rootfs.tar.gz ] || [ "x$1" = "x-f" ]; then
-        echo "Getting new rootfs..." >&2
-        rm -f rootfs-new.tar.gz*
-        wget -O "$HOME"/rootfs/rootfs-new.tar.gz https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz || die "Can't download tarball"
-        wget -O "$HOME"/rootfs/rootfs-new.tar.gz.sha256 https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz.sha256 || die "Can't download checksum"
-        wget -O "$HOME"/rootfs/rootfs-new.tar.gz.sig https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz.sig || die "Can't download signature"
-        sed -i 's|mox-netboot-.*|rootfs-new.tar.gz|' "$HOME"/rootfs/rootfs-new.tar.gz.sha256
-        sha256sum -c ./rootfs-new.tar.gz.sha256 || {
-            rm -f ./rootfs-new.tar.gz*
-            die "Download failed"
-        }
-        usign -V -m ./rootfs-new.tar.gz -P /etc/opkg/keys/ || {
-            rm -f ./rootfs-new.tar.gz*
-            die "Tampered tarball"
-        }
-        sed -i 's|rootfs-new.tar.gz|rootfs.tar.gz|' "$HOME"/rootfs/rootfs-new.tar.gz.sha256
-        mv "$HOME"/rootfs/rootfs-new.tar.gz "$HOME"/rootfs/rootfs.tar.gz
-        mv "$HOME"/rootfs/rootfs-new.tar.gz.sha256 "$HOME"/rootfs/rootfs.tar.gz.sha256
-        mv "$HOME"/rootfs/rootfs-new.tar.gz.sig "$HOME"/rootfs/rootfs.tar.gz.sig
-    fi
-    if [ ./rootfs.tar.gz -nt /srv/tftp/turris-netboot/mox ] || [ \! -f /srv/tftp/turris-netboot/mox ]; then
-        cd "$HOME"/rootfs/
-        rm -rf ./boot ./usr mox.its
-        tar -xzf rootfs.tar.gz ./boot/Image ./boot/armada-3720-turris-mox.dtb ./usr/share/turris-netboot/initrd-aarch64 ./usr/share/turris-netboot/mox.its || die "Wrong rootfs"
-        rm -f mox.its
-        cp ./usr/share/turris-netboot/mox.its .
-        /usr/sbin/mkimage -f mox.its /srv/tftp/turris-netboot/mox || die "Can't create image"
-        rm -rf ./boot ./usr mox.its
-    fi
+    echo "Getting new rootfs..." >&2
+    rm -f rootfs-new.tar.gz*
+    wget -O "$HOME"/rootfs/rootfs-new.tar.gz https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz || die "Can't download tarball"
+    wget -O "$HOME"/rootfs/rootfs-new.tar.gz.sha256 https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz.sha256 || die "Can't download checksum"
+    wget -O "$HOME"/rootfs/rootfs-new.tar.gz.sig https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz.sig || die "Can't download signature"
+    sed -i 's|mox-netboot-.*|rootfs-new.tar.gz|' "$HOME"/rootfs/rootfs-new.tar.gz.sha256
+    sha256sum -c ./rootfs-new.tar.gz.sha256 || {
+        rm -f ./rootfs-new.tar.gz*
+        die "Download failed"
+    }
+    usign -V -m ./rootfs-new.tar.gz -P /etc/opkg/keys/ || {
+        rm -f ./rootfs-new.tar.gz*
+        die "Tampered tarball"
+    }
+    sed -i 's|rootfs-new.tar.gz|rootfs.tar.gz|' "$HOME"/rootfs/rootfs-new.tar.gz.sha256
+    mv "$HOME"/rootfs/rootfs-new.tar.gz "$HOME"/rootfs/rootfs.tar.gz
+    mv "$HOME"/rootfs/rootfs-new.tar.gz.sha256 "$HOME"/rootfs/rootfs.tar.gz.sha256
+    mv "$HOME"/rootfs/rootfs-new.tar.gz.sig "$HOME"/rootfs/rootfs.tar.gz.sig
+    cd "$HOME"/rootfs/
+    rm -rf ./boot ./usr mox.its
+    tar -xzf rootfs.tar.gz ./boot/Image ./boot/armada-3720-turris-mox.dtb ./usr/share/turris-netboot/initrd-aarch64 ./usr/share/turris-netboot/mox.its || die "Wrong rootfs"
+    rm -f mox.its
+    cp ./usr/share/turris-netboot/mox.its .
+    /usr/sbin/mkimage -f mox.its /srv/tftp/turris-netboot/mox || die "Can't create image"
+    rm -rf ./boot ./usr mox.its
+    regen -f
 }
 
 update_rootfs() {
-    set_netboot_user update_rootfs
+    set_netboot_user update_rootfs $1
 
+    if [ "$1" = -f ]; then
+        get_rootfs
+        return
+    fi
     wget -O /tmp/rootfs-check.tar.gz.sha256 https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz.sha256
     sed -i 's|mox-netboot-.*|rootfs.tar.gz|' /tmp/rootfs-check.tar.gz.sha256
     cd "$HOME"/rootfs/
     sha256sum -c /tmp/rootfs-check.tar.gz.sha256 || {
-        get_rootfs -f
+        get_rootfs
     }
     rm -f /tmp/rootfs-check.tar.gz.sha256
 }
@@ -141,7 +142,7 @@ EOF
     done
     } > ~/.ssh/authorized_keys
     chmod 0644 ~/.ssh/authorized_keys
-    get_rootfs $1
+    [ -f /srv/tftp/turris-netboot/mox ] || get_rootfs
     cd "$BASE_DIR"/accepted
     echo "Signing kernels..." >&2
     for i in */aes; do
@@ -312,28 +313,28 @@ case $1 in
     revoke) revoke "$(ensure_hexa "$2")" ;;
     register) register ;;
     regen) regen "$2" ;;
-    get_rootfs) get_rootfs ;;
     update_rootfs)
         if [ "x$2" = "x-s" ]; then
             # Sleep up to 2 hours
             sleep "$(rand 7200)"
         fi
-        update_rootfs
+        update_rootfs "$2"
         ;;
     *) cat << EOF
 Available commands:
 
-    list-incoming       List routers waiting to be registered
-    list-accepted       List registered routers
-    list-transfering    List routers which are to be moved from incoming to accepted
-    list-all|list       List both types of routers
+    list-incoming            List routers waiting to be registered
+    list-accepted            List registered routers
+    list-transfering         List routers which are to be moved from incoming to accepted
+    list-all|list            List both types of routers
 
-    accept <serial>     Accept routers request for registration
-    revoke <serial>     Revoke routers access
-    regen               Regenerate configuration
-    get_rootfs          Download rootfs that is being served
-    update_rootfs [-s]  Check whether there is a newer rootfs to serve
-                        Use -s to add random delay up to two hours
+    accept <serial>          Accept routers request for registration
+    revoke <serial>          Revoke routers access
+    regen [-f]               Regenerate configuration
+                             Use -f to force regeneration of configuration
+    update_rootfs [-s] [-f]  Check whether there is a newer rootfs to serve
+                             Use -s to add random delay up to two hours
+                             Use -f to force download of rootfs
 
 Use -j as a first argument to get lists in json format
 EOF
