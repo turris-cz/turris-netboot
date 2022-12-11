@@ -20,6 +20,8 @@ get_root_version() {
     netboot_sha="$(sudo sha256sum /etc/config/netboot)"
     overlay_sha="$(find "$BASE_DIR"/rootfs/overlay/$ID "$BASE_DIR"/rootfs/overlay/common -type f -exec sha256sum \{\} \; 2> /dev/null | sort)"
     echo "$(cat "$BASE_DIR"/rootfs/rootfs.tar.gz.sha256)" "$wireless_sha" "$netboot_sha" "$overlay_sha" | sha256sum
+    mkdir -p /tmp/turris-netboot-status/ 2> /dev/null
+    date +%s > /tmp/turris-netboot-status/"$ID"
 }
 
 setup() {
