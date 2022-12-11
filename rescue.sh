@@ -108,6 +108,7 @@ mount -t devpts devpts /dev/pts
 mkdir -p /etc
 echo '/dev/mtd2 0 0x00010000' > /etc/fw_env.config
 SERIAL="$(cat /sys/bus/platform/devices/soc:internal-regs@d0000000:crypto@0/mox_serial_number)"
+[ -n "$SERIAL" ] || SERIAL="$(cat /sys/firmware/turris-mox-rwtm/serial_number)"
 MAC="$(cat /sys/class/net/eth0/address)"
 
 mkdir -p /root/.ssh
