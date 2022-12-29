@@ -1,3 +1,7 @@
+# Which branch to boot
+config system system
+	option branch 'hbs'
+
 # Defaults to be overriden later
 config wifi default
 	option ssid '@@SSID@@'

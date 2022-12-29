@@ -67,9 +67,10 @@ get_rootfs() {
     cd "$HOME"/rootfs/ || die "Can't cd to $HOME/rootfs/"
     echo "Getting new rootfs..." >&2
     rm -f rootfs-new.tar.gz*
-    wget -O "$HOME"/rootfs/rootfs-new.tar.gz https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz || die "Can't download tarball"
-    wget -O "$HOME"/rootfs/rootfs-new.tar.gz.sha256 https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz.sha256 || die "Can't download checksum"
-    wget -O "$HOME"/rootfs/rootfs-new.tar.gz.sig https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz.sig || die "Can't download signature"
+    branch="$(sudo /sbin/uci -q get netboot.system.branch || echo hbs)"
+    wget -O "$HOME"/rootfs/rootfs-new.tar.gz https://repo.turris.cz/$branch/netboot/mox-netboot-latest.tar.gz || die "Can't download tarball"
+    wget -O "$HOME"/rootfs/rootfs-new.tar.gz.sha256 https://repo.turris.cz/$branch/netboot/mox-netboot-latest.tar.gz.sha256 || die "Can't download checksum"
+    wget -O "$HOME"/rootfs/rootfs-new.tar.gz.sig https://repo.turris.cz/$branch/netboot/mox-netboot-latest.tar.gz.sig || die "Can't download signature"
     sed -i 's|mox-netboot-.*|rootfs-new.tar.gz|' "$HOME"/rootfs/rootfs-new.tar.gz.sha256
     sha256sum -c ./rootfs-new.tar.gz.sha256 || {
         rm -f ./rootfs-new.tar.gz*
@@ -100,7 +101,8 @@ update_rootfs() {
         get_rootfs
         return
     fi
-    wget -O /tmp/rootfs-check.tar.gz.sha256 https://repo.turris.cz/hbs/netboot/mox-netboot-latest.tar.gz.sha256
+    branch="$(sudo /sbin/uci -q get netboot.system.branch || echo hbs)"
+    wget -O /tmp/rootfs-check.tar.gz.sha256 https://repo.turris.cz/$branch/netboot/mox-netboot-latest.tar.gz.sha256
     sed -i 's|mox-netboot-.*|rootfs.tar.gz|' /tmp/rootfs-check.tar.gz.sha256
     cd "$HOME"/rootfs/
     sha256sum -c /tmp/rootfs-check.tar.gz.sha256 || {
