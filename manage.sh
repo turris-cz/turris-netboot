@@ -87,6 +87,8 @@ get_rootfs() {
     cd "$HOME"/rootfs/
     rm -rf ./boot ./usr mox.its
     tar -xzf rootfs.tar.gz ./boot/Image ./boot/armada-3720-turris-mox.dtb ./usr/share/turris-netboot/initrd-aarch64 ./usr/share/turris-netboot/mox.its || die "Wrong rootfs"
+    local initrd="$(sudo uci -q get netboot.system.custom_initrd)"
+    [ -z "$initrd" ] || cp "$initrd" ./usr/share/turris-netboot/initrd-aarch64
     rm -f mox.its
     cp ./usr/share/turris-netboot/mox.its .
     /usr/sbin/mkimage -f mox.its /srv/tftp/turris-netboot/mox || die "Can't create image"
