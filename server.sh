@@ -16,8 +16,8 @@ get_root() {
 }
 
 get_root_version() {
-    wireless_sha="$(sudo sha256sum /etc/config/wireless)"
-    netboot_sha="$(sudo sha256sum /etc/config/netboot)"
+    wireless_sha="$(sudo /bin/sha256sum /etc/config/wireless)"
+    netboot_sha="$(sudo /bin/sha256sum /etc/config/netboot)"
     overlay_sha="$(find "$BASE_DIR"/rootfs/overlay/$ID "$BASE_DIR"/rootfs/overlay/common -type f -exec sha256sum \{\} \; 2> /dev/null | sort)"
     echo "$(cat "$BASE_DIR"/rootfs/rootfs.tar.gz.sha256)" "$wireless_sha" "$netboot_sha" "$overlay_sha" | sha256sum
     mkdir -p /tmp/turris-netboot-status/ 2> /dev/null
@@ -25,9 +25,9 @@ get_root_version() {
 }
 
 setup() {
-    SSID="$(sudo uci -q get wireless.@wifi-iface[0].ssid)"
-    KEY="$(sudo uci -q get wireless.@wifi-iface[0].key)"
-    COUNTRY="$(sudo uci -q get wireless.@wifi-device[0].country)"
+    SSID="$(sudo /sbin/uci -q get wireless.@wifi-iface[0].ssid)"
+    KEY="$(sudo /sbin/uci -q get wireless.@wifi-iface[0].key)"
+    COUNTRY="$(sudo /sbin/uci -q get wireless.@wifi-device[0].country)"
     {
         echo '#!/bin/sh'
         echo 'cat > /etc/config/netboot << EOF'
@@ -56,8 +56,8 @@ case "$comm" in
     get_id)   echo "$ID" ;;
     get_version)   echo "$ID" ;;
     get_aes)  cat "$BASE_DIR"/clients/accepted/$ID/aes | hexdump -e '4/4 "%02x "' ;;
-    get_timeout)  uci -q get netboot.setup.timeout || echo 20 ;;
-    get_retry)  uci -q get netboot.setup.retry || echo 3 ;;
+    get_timeout)  sudo /sbin/uci -q get netboot.setup.timeout || echo 60 ;;
+    get_retry)  sudo /sbin/uci -q get netboot.setup.retry || echo 3 ;;
     setup)  setup ;;
     *) echo "Unknown command" ;;
 esac
