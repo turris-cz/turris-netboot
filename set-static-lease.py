@@ -82,16 +82,27 @@ if not free_ip:
         sys.exit(1)
 
 # set new record
+free_ip_str = str(free_ip)
+last_byte = free_ip_str.split(".")[3]
 with EUci() as uci:
     uci.set("dhcp", device_id, "host")
-    uci.set("dhcp", device_id, "ip", str(free_ip))
+    uci.set("dhcp", device_id, "ip", free_ip_str)
     uci.set("dhcp", device_id, "mac", device_mac)
     uci.set("dhcp", device_id, "name", device_id)
+    uci.set("dhcp", f"guest_{last_byte}", "interface")
+    uci.set("dhcp", f"guest_{last_byte}", "proto", "gretap")
+    uci.set("dhcp", f"guest_{last_byte}", "network", "guest_turris")
+    uci.set("dhcp", f"guest_{last_byte}", "peeraddr", free_ip_str)
+    uci.set("dhcp", f"guest_{last_byte}", "ipaddr", lan_ip)
     uci.commit("dhcp")
 
 sub = subprocess.Popen(["/etc/init.d/dnsmasq", "restart"])
 rc = sub.wait()
 if rc != 0:
     err(f"New static IP was assigned {free_ip}, but failed to restart dnsmasq")
+sub = subprocess.Popen(["ifup", "guest_{}".format(last_byte)])
+rc = sub.wait()
+if rc != 0:
+    err(f"Starting guest tunnel failed, but everything else is ok")
 
 print(free_ip)

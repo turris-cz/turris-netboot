@@ -1,17 +1,46 @@
 #!/bin/sh
+[ -n "$SERVER_IP" ] || SERVER_IP="$(cat /proc/cmdline |  tr ' ' \\n | sed -n 's|^boot_server=||p')"
 SERIAL="$(cat /sys/devices/platform/soc/soc:internal-regs@d0000000/soc:internal-regs@d0000000:crypto@0/mox_serial_number)"
-uci set network.lan.ifname="$(cd /sys/class/net/; ls -1d eth* lan* | tr '\n' ' ')"
-uci set network.lan.proto='dhcp'
-uci set network.lan.macaddr="$(cat /sys/class/net/eth0/address)"
-uci set network.lan.force_link='1'
-uci set network.lan.type='bridge'
-uci set network.wan.ifname=''
-uci set dhcp.lan.ra=disabled
-uci set dhcp.lan.dhcpv6=disabled
-uci delete network.lan.ipaddr
-uci delete network.lan.netmask
-uci delete network.lan.ip6assign
-uci commit
+uci batch << EOF
+# We are AP, disable DHCP and RA
+set dhcp.lan.ra=disabled
+set dhcp.lan.dhcpv6=disabled
+
+# Setup LAN network - DHCP client, all physical interfaces in bridge
+set network.lan.ifname="$(cd /sys/class/net/; ls -1d eth* lan* | tr '\n' ' ')"
+set network.lan.proto='dhcp'
+set network.lan.macaddr="$(cat /sys/class/net/eth0/address)"
+set network.lan.force_link='1'
+set network.lan.type='bridge'
+delete network.lan.ipaddr
+delete network.lan.netmask
+delete network.lan.ip6assign
+
+# Nothing is part of WAN, we are not router
+set network.wan.ifname=''
+
+# Setup bridge for guest network
+set network.br_guest_turris='device'
+set network.br_guest_turris.name='br-guest-turris'
+set network.br_guest_turris.type='bridge'
+set network.br_guest_turris.bridge_empty='1'
+
+# Setup guest network - we are just extension, we do not manage it
+set network.guest_turris='interface'
+set network.guest_turris.proto='none'
+set network.guest_turris.device='br-guest-turris'
+set network.guest_turris.bridge_empty='1'
+delete network.guest_turris.ipaddr
+delete network.guest_turris.netmask
+delete network.guest_turris.ip6assign
+
+# Setup tunnel that will be bridged to the guest network
+set network.guest_tnl='interface'
+set network.guest_tnl.proto='gretap'
+set network.guest_tnl.network='guest_turris'
+set network.guest_tnl.peeraddr='$SERVER_IP'
+commit
+EOF
 /etc/init.d/network restart
 RADIO=0
 

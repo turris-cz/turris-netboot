@@ -146,7 +146,9 @@ if my_netboot get_remote_access 2> /dev/null | tar -C /chroot/etc/ssl/ca -xvf - 
 else
 	echo "Can't get remote access certs :-("
 fi
-my_netboot setup > /chroot/etc/rc.local
+echo "#!/bin/sh" > /chroot/etc/rc.local
+echo "SERVER_IP=$SERVER_IP" >> /chroot/etc/rc.local
+my_netboot setup >> /chroot/etc/rc.local
 for i in sys proc dev dev/pts; do
     mount -o bind /$i /chroot/$i
 done
